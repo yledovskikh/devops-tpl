@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,8 +14,10 @@ import (
 )
 
 const (
-	endpoint   = "http://localhost:8080"
-	contextURL = "update"
+	endpoint       = "http://localhost:8080"
+	contextURL     = "update"
+	pollInterval   = 2
+	reportInterval = 10
 )
 
 type metric struct {
@@ -25,7 +26,7 @@ type metric struct {
 	value      string
 }
 
-func collectMetrics(rtm runtime.MemStats, pullCount int64, randomValue float64) []metric {
+func collectMetrics(rtm runtime.MemStats, pollCount int64, randomValue float64) []metric {
 
 	m := []metric{
 		{"Alloc", "gauge", strconv.FormatUint(rtm.Alloc, 10)},
@@ -56,7 +57,7 @@ func collectMetrics(rtm runtime.MemStats, pullCount int64, randomValue float64) 
 		{"Sys", "gauge", strconv.FormatUint(rtm.Sys, 10)},
 		{"TotalAlloc", "gauge", strconv.FormatUint(rtm.TotalAlloc, 10)},
 		//Custom metrics
-		{"PollCount", "counter", strconv.FormatInt(pullCount, 10)},
+		{"PollCount", "counter", strconv.FormatInt(pollCount, 10)},
 		{"RandomValue", "gauge", strconv.FormatFloat(randomValue, 'f', -1, 64)},
 	}
 	return m
@@ -72,18 +73,13 @@ func postMetrics(m []metric) {
 			fmt.Println(err.Error())
 		}
 		client := &http.Client{}
-		response, err := client.Do(request)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer response.Body.Close()
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Println(string(body))
+		client.Do(request)
+		//response, err := client.Do(request)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	os.Exit(1)
+		//}
+
 	}
 
 }
@@ -92,7 +88,7 @@ func main() {
 	var m []metric
 	var rtm runtime.MemStats
 	rand.Seed(time.Now().UnixNano())
-	var pullCount int64 = 0
+	var pollCount int64 = 0
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel,
 		syscall.SIGTERM,
@@ -123,15 +119,15 @@ func main() {
 
 	go func() {
 		for {
-			pullCount++
+			pollCount++
 			runtime.ReadMemStats(&rtm)
 			r := rand.Float64()
-			m = collectMetrics(rtm, pullCount, r)
-			fmt.Println(pullCount)
-			if pullCount%10 == 0 {
+			m = collectMetrics(rtm, pollCount, r)
+			fmt.Println(pollCount)
+			if pollCount%reportInterval == 0 {
 				postMetrics(m)
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(pollInterval * time.Second)
 		}
 	}()
 	exitCode := <-exitChan

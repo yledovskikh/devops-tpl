@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -16,8 +15,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 		//http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
 		return
 	}
-	fmt.Fprintln(w, r.URL)
-	//w.Write([]byte("<h1>Hello, World</h1>"))
+	//fmt.Fprintln(w, r.URL)
 }
 
 func main() {
