@@ -73,7 +73,6 @@ func postMetrics(m []metric) {
 			fmt.Println(err.Error())
 		}
 		client := &http.Client{}
-		client.Do(request)
 		response, err := client.Do(request)
 		if err != nil {
 			fmt.Println(err.Error())
