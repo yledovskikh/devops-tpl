@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -76,12 +75,10 @@ func postMetrics(m []metric) {
 		client := &http.Client{}
 		client.Do(request)
 		response, err := client.Do(request)
-		defer response.Body.Close()
-		_, err := io.Copy(io.Discard, response.Body)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err.Error())
 		}
-
+		response.Body.Close()
 	}
 
 }
