@@ -122,7 +122,7 @@ func main() {
 			runtime.ReadMemStats(&rtm)
 			r := rand.Float64()
 			m = collectMetrics(rtm, pollCount, r)
-			fmt.Println(pollCount)
+			fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 			if pollCount%reportInterval == 0 {
 				postMetrics(m)
 			}
