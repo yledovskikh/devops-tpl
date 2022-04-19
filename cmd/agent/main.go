@@ -27,7 +27,6 @@ type metric struct {
 }
 
 func collectMetrics(rtm runtime.MemStats, pollCount int64, randomValue float64) []metric {
-
 	m := []metric{
 		{"Alloc", "gauge", strconv.FormatUint(rtm.Alloc, 10)},
 		{"BuckHashSys", "gauge", strconv.FormatUint(rtm.BuckHashSys, 10)},
@@ -64,6 +63,7 @@ func collectMetrics(rtm runtime.MemStats, pollCount int64, randomValue float64) 
 }
 
 func postMetrics(m []metric) {
+	fmt.Println(time.Now().Format(time.UnixDate), "Push metrics:")
 	for _, value := range m {
 		url := endpoint + "/" + contextURL + "/" + value.metricType + "/" + value.name + "/" + value.value
 		fmt.Println(url)
@@ -76,6 +76,8 @@ func postMetrics(m []metric) {
 		response, err := client.Do(request)
 		if err != nil {
 			fmt.Println(err.Error())
+			os.Exit(1)
+
 		}
 		response.Body.Close()
 	}
@@ -116,16 +118,19 @@ func main() {
 	}()
 
 	go func() {
+		pollIntervalTicker := time.NewTicker(pollInterval * time.Second)
+		reportIntervalTicker := time.NewTicker(reportInterval * time.Second)
 		for {
 			pollCount++
 			runtime.ReadMemStats(&rtm)
 			r := rand.Float64()
 			m = collectMetrics(rtm, pollCount, r)
-			fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
-			if pollCount%reportInterval == 0 {
+			select {
+			case <-pollIntervalTicker.C:
+				fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
+			case <-reportIntervalTicker.C:
 				postMetrics(m)
 			}
-			time.Sleep(pollInterval * time.Second)
 		}
 	}()
 	exitCode := <-exitChan
