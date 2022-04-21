@@ -66,7 +66,7 @@ func postMetrics(m []metric) {
 	fmt.Println(time.Now().Format(time.UnixDate), "Push metrics:")
 	for _, value := range m {
 		url := endpoint + "/" + contextURL + "/" + value.metricType + "/" + value.name + "/" + value.value
-		fmt.Println(url)
+		//fmt.Println(url)
 		request, err := http.NewRequest(http.MethodPost, url, nil)
 		request.Header.Set("Content-Type", "text/plain; charset=UTF-8")
 		if err != nil {
@@ -121,12 +121,12 @@ func main() {
 		pollIntervalTicker := time.NewTicker(pollInterval * time.Second)
 		reportIntervalTicker := time.NewTicker(reportInterval * time.Second)
 		for {
-			pollCount++
-			runtime.ReadMemStats(&rtm)
-			r := rand.Float64()
-			m = collectMetrics(rtm, pollCount, r)
 			select {
 			case <-pollIntervalTicker.C:
+				r := rand.Float64()
+				pollCount++
+				runtime.ReadMemStats(&rtm)
+				m = collectMetrics(rtm, pollCount, r)
 				fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 			case <-reportIntervalTicker.C:
 				postMetrics(m)
