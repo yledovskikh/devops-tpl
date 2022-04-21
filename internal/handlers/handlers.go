@@ -18,7 +18,7 @@ func (rtm *RunTimeMetrics) UpdateRTMetric(mtype string, mname string, mvalue str
 	case "gauge":
 		vg, err := strconv.ParseFloat(mvalue, 64)
 		if err != nil {
-			return errors.New("Incorrect metric value")
+			return errors.New("incorrect metric value")
 		}
 		//fmt.Println(mname, vg)
 		//rtm.gauge[mname] = vg
@@ -29,7 +29,7 @@ func (rtm *RunTimeMetrics) UpdateRTMetric(mtype string, mname string, mvalue str
 	case "counter":
 		vg, err := strconv.ParseInt(mvalue, 10, 64)
 		if err != nil {
-			return errors.New("Incorrect metric value")
+			return errors.New("incorrect metric value")
 		}
 		if rtm.counter == nil {
 			rtm.counter = make(map[string]int64)
