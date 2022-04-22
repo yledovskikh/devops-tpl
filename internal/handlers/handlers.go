@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -12,6 +13,8 @@ type RunTimeMetrics struct {
 	counter map[string]int64
 	gauge   map[string]float64
 }
+
+var m RunTimeMetrics
 
 func (rtm *RunTimeMetrics) UpdateRTMetric(mtype string, mname string, mvalue string) error {
 	switch strings.ToLower(mtype) {
@@ -42,12 +45,6 @@ func (rtm *RunTimeMetrics) UpdateRTMetric(mtype string, mname string, mvalue str
 }
 
 func splitPath(sPath string) []string {
-
-	//u, err := url.Parse(sPath)
-	//if err != nil {
-	//	return "", "", "", errors.New("invalid url")
-	//}
-
 	s := strings.Split(sPath, "/")
 	return s
 }
@@ -57,19 +54,34 @@ func MetricsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only Post requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
-	if r.Header.Get("Content-Type") != "text/plain" {
-		//http.Error(w, r.Header.Get("Content-Type"), http.StatusUnsupportedMediaType)
-		http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
-		return
-	}
-	s := splitPath(r.URL.Path)
-	m := RunTimeMetrics{}
-	err := m.UpdateRTMetric(s[2], s[3], s[4])
+
+	//reg, err := regexp.MatchString(`^\/update\/(counter|gauge)\/\w+\/(\d+(?:\.\d+))$`, r.URL.Path)
+	curl, err := regexp.MatchString(`^\/update\/(counter|gauge)\/\w+\/(\d+(?:\.\d+)?)$`, r.URL.Path)
+	fmt.Println("", curl, err)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	fmt.Fprintln(w, m.gauge)
+	if !curl {
+		http.Error(w, "Page not found", http.StatusNotFound)
+		return
+	}
+
+	//if r.Header.Get("Content-Type") != "text/plain" {
+	//	//http.Error(w, r.Header.Get("Content-Type"), http.StatusUnsupportedMediaType)
+	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
+	//	return
+	//}
+
+	s := splitPath(r.URL.Path)
+	err = m.UpdateRTMetric(s[2], s[3], s[4])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(m)
+	//fmt.Fprintln(w, m.gauge)
 	//w.Write(["aa"])
 	//fmt.Fprintln(w, )
 	//fmt.Fprintln(w, r.URL.Path)
