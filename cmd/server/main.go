@@ -51,7 +51,7 @@ func updateMetric(w http.ResponseWriter, r *http.Request) {
 	err := rtm.UpdateRTMetric(metricType, metricName, metricValue)
 	if err != nil {
 		//TODO do correct error
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	fmt.Println(rtm.counter, rtm.gauge)
@@ -91,7 +91,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/update/{metricType:(counter|gauge)}/{metricName:\\w+}/{metricValue:(\\d+\\.)?\\d+}", updateMetric)
+	r.Post("/update/{metricType:(counter|gauge)}/{metricName:\\w+}/{metricValue:(\\w+}", updateMetric)
 	r.Get("/value/{metricType:(counter|gauge)}/{metricName:\\w+}", getMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
