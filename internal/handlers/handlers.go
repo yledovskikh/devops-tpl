@@ -50,6 +50,7 @@ func splitPath(sPath string) []string {
 }
 
 func MetricsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("r.URL")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only Post requests are allowed!", http.StatusMethodNotAllowed)
 		return
