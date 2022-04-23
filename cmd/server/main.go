@@ -91,7 +91,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/update/{metricType:(counter|gauge)}/{metricName:\\w+}/{metricValue:(\\w+}", updateMetric)
+	r.Post("/update/{metricType:(counter|gauge)}/{metricName:\\w+}/{metricValue:\\w+}", updateMetric)
 	r.Get("/value/{metricType:(counter|gauge)}/{metricName:\\w+}", getMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
