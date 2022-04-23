@@ -48,13 +48,18 @@ func updateMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
+	//fmt.Println("entry - update metrics")
+	if strings.ToLower(metricType) != "gauge" && strings.ToLower(metricType) != "counter" {
+		http.Error(w, "incorrect type value", http.StatusNotImplemented)
+		return
+	}
 	err := rtm.UpdateRTMetric(metricType, metricName, metricValue)
 	if err != nil {
 		//TODO do correct error
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println(rtm.counter, rtm.gauge)
+	//fmt.Println(rtm.counter, rtm.gauge)
 }
 
 func getMetric(w http.ResponseWriter, r *http.Request) {
@@ -64,11 +69,13 @@ func getMetric(w http.ResponseWriter, r *http.Request) {
 	switch strings.ToLower(metricType) {
 	case "gauge":
 		if val, ok := rtm.gauge[metricName]; ok {
-			metricValue = strconv.FormatFloat(val, 'f', 10, 64)
+			//metricValue := strconv.FormatFloat(val, 'f', 10, 64)
+			metricValue = fmt.Sprintf("%v", val)
 		}
 	case "counter":
 		if val, ok := rtm.counter[metricName]; ok {
-			metricValue = strconv.FormatInt(val, 10)
+			//metricValue = strconv.FormatInt(val, 10)
+			metricValue = fmt.Sprintf("%v", val)
 		}
 	}
 	fmt.Println(metricValue)
@@ -91,7 +98,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/update/{metricType:(counter|gauge)}/{metricName:\\w+}/{metricValue:\\w+}", updateMetric)
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", updateMetric)
 	r.Get("/value/{metricType:(counter|gauge)}/{metricName:\\w+}", getMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
