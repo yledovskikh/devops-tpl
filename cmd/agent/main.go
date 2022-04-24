@@ -68,7 +68,7 @@ func postMetrics(m []metric) {
 		url := endpoint + "/" + contextURL + "/" + value.metricType + "/" + value.name + "/" + value.value
 		//fmt.Println(url)
 		request, err := http.NewRequest(http.MethodPost, url, nil)
-		request.Header.Set("Content-Type", "text/plain; charset=UTF-8")
+		request.Header.Set("Content-Type", "text/plain")
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -79,7 +79,10 @@ func postMetrics(m []metric) {
 			os.Exit(1)
 
 		}
-		response.Body.Close()
+		err = response.Body.Close()
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 }
@@ -126,7 +129,7 @@ func main() {
 				r := rand.Float64()
 				pollCount++
 				runtime.ReadMemStats(&rtm)
-				m = collectMetrics(rtm, pollCount, r)
+				m = collectMetrics(rtm, 1, r)
 				fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 			case <-reportIntervalTicker.C:
 				postMetrics(m)

@@ -3,87 +3,82 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
-type RunTimeMetrics struct {
-	counter map[string]int64
-	gauge   map[string]float64
-}
-
-var m RunTimeMetrics
-
-func (rtm *RunTimeMetrics) UpdateRTMetric(mtype string, mname string, mvalue string) error {
-	switch strings.ToLower(mtype) {
+func updateMetric(metricType string, metricName string, metricValue string) error {
+	switch strings.ToLower(metricType) {
 	case "gauge":
-		vg, err := strconv.ParseFloat(mvalue, 64)
+		vg, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
 			return errors.New("incorrect metric value")
 		}
-		//fmt.Println(mname, vg)
-		//rtm.gauge[mname] = vg
-		if rtm.gauge == nil {
-			rtm.gauge = make(map[string]float64)
-		}
-		rtm.gauge[mname] = vg
+		//if storage.RunTimeMetrics == nil {
+		//	storage.gauge = make(map[string]float64)
+		//}
+		storage.Gauge[metricName] = vg
 	case "counter":
-		vg, err := strconv.ParseInt(mvalue, 10, 64)
+		vg, err := strconv.ParseInt(metricValue, 10, 64)
 		if err != nil {
 			return errors.New("incorrect metric value")
 		}
-		if rtm.counter == nil {
-			rtm.counter = make(map[string]int64)
-		}
-		rtm.counter[mname] += vg
+		//if storage.counter == nil {
+		//	storage.counter = make(map[string]int64)
+		//}
+		storage.Counter[metricName] += vg
 	default:
 		return errors.New("incorrect type (expected gauge or counter)")
 	}
 	return nil
 }
 
-func splitPath(sPath string) []string {
-	s := strings.Split(sPath, "/")
-	return s
-}
-
-func MetricsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("r.URL")
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only Post requests are allowed!", http.StatusMethodNotAllowed)
-		return
-	}
-
-	//reg, err := regexp.MatchString(`^\/update\/(counter|gauge)\/\w+\/(\d+(?:\.\d+))$`, r.URL.Path)
-	curl, err := regexp.MatchString(`^\/update\/(counter|gauge)\/\w+\/(\d+(?:\.\d+)?)$`, r.URL.Path)
-	fmt.Println("", curl, err)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if !curl {
-		http.Error(w, "Page not found", http.StatusNotFound)
-		return
-	}
+func PostMetric(w http.ResponseWriter, r *http.Request) {
 
 	//if r.Header.Get("Content-Type") != "text/plain" {
-	//	//http.Error(w, r.Header.Get("Content-Type"), http.StatusUnsupportedMediaType)
 	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
 	//	return
 	//}
 
-	s := splitPath(r.URL.Path)
-	err = m.UpdateRTMetric(s[2], s[3], s[4])
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
+	if strings.ToLower(metricType) != "gauge" && strings.ToLower(metricType) != "counter" {
+		http.Error(w, "incorrect metric type", http.StatusNotImplemented)
 		return
 	}
-	fmt.Println(m)
-	//fmt.Fprintln(w, m.gauge)
-	//w.Write(["aa"])
-	//fmt.Fprintln(w, )
-	//fmt.Fprintln(w, r.URL.Path)
+	err := updateMetric(metricType, metricName, metricValue)
+	if err != nil {
+		//TODO do correct error
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func GetMetric(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	var metricValue string
+	switch strings.ToLower(metricType) {
+	case "gauge":
+		if val, ok := storage.Gauge[metricName]; ok {
+			metricValue = fmt.Sprintf("%v", val)
+		}
+	case "counter":
+		if val, ok := storage.Counter[metricName]; ok {
+			metricValue = fmt.Sprintf("%v", val)
+		}
+	}
+	fmt.Println(metricValue)
+	if metricValue == "" {
+		http.Error(w, "404 page not found", http.StatusNotFound)
+	}
+	w.WriteHeader(http.StatusOK)
+	_, err := fmt.Fprintln(w, metricValue)
+	if err != nil {
+		panic("error write  client")
+	}
 }
