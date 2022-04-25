@@ -83,7 +83,7 @@ func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, en
 			r := rand.Float64()
 			pollCount++
 			runtime.ReadMemStats(&rtm)
-			m = collectMetrics(rtm, 1, r)
+			m = collectMetrics(rtm, pollCount, r)
 			fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 		case <-reportIntervalTicker.C:
 			postMetrics(m, endpoint, contextURL)
