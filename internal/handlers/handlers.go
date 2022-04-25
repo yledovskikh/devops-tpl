@@ -77,7 +77,6 @@ func GetMetric(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "404 page not found", http.StatusNotFound)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	_, err := fmt.Fprintln(w, metricValue)
 	if err != nil {
 		panic("error write  client")
