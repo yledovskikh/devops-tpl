@@ -93,6 +93,7 @@ func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, en
 
 func TerminateAgent(exitChan chan int) {
 	signalChannel := make(chan os.Signal, 1)
+	//TODO refactor: think about how to optimize this structure
 	signal.Notify(signalChannel,
 		syscall.SIGTERM,
 		syscall.SIGINT,

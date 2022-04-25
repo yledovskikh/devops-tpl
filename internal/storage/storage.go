@@ -1,6 +1,7 @@
 package storage
 
 //type RunTimeMetrics struct {
+//TODO rewrite to interface
 var Counter = make(map[string]int64)
 var Gauge = make(map[string]float64)
 

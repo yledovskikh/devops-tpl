@@ -20,6 +20,7 @@ func updateMetric(metricType string, metricName string, metricValue string) erro
 		//if storage.RunTimeMetrics == nil {
 		//	storage.gauge = make(map[string]float64)
 		//}
+		//TODO rewrite save metrics to "concurrency safe"
 		storage.Gauge[metricName] = vg
 	case "counter":
 		vg, err := strconv.ParseInt(metricValue, 10, 64)
@@ -52,7 +53,6 @@ func PostMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	err := updateMetric(metricType, metricName, metricValue)
 	if err != nil {
-		//TODO do correct error
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

@@ -16,6 +16,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	//TODO move validate path to handlers
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handlers.PostMetric)
 	r.Get("/value/{metricType:(counter|gauge)}/{metricName:\\w+}", handlers.GetMetric)
 
