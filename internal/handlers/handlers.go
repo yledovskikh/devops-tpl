@@ -79,6 +79,6 @@ func GetMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err := fmt.Fprintln(w, metricValue)
 	if err != nil {
-		panic("error write  client")
+		fmt.Println(err.Error())
 	}
 }
