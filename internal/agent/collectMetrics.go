@@ -58,25 +58,16 @@ func postMetrics(m []metric, endpoint string, contextURL string) {
 	fmt.Println(time.Now().Format(time.UnixDate), "Push metrics:")
 	for _, value := range m {
 		url := endpoint + "/" + contextURL + "/" + value.metricType + "/" + value.name + "/" + value.value
-		//fmt.Println(url)
-		request, err := http.NewRequest(http.MethodPost, url, nil)
-		request.Header.Set("Content-Type", "text/plain")
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		client := &http.Client{}
-		response, err := client.Do(request)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
 
+		response, err := http.Post(url, "text/plain", nil)
+		if err != nil {
+			fmt.Println(err.Error())
 		}
 		err = response.Body.Close()
 		if err != nil {
-			panic(err.Error())
+			fmt.Println(err.Error())
 		}
 	}
-
 }
 
 func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, endpoint string, contextURL string) {
