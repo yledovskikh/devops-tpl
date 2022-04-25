@@ -43,10 +43,10 @@ func PostMetric(w http.ResponseWriter, r *http.Request) {
 	//	return
 	//}
 
-	metricType := chi.URLParam(r, "metricType")
+	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	if strings.ToLower(metricType) != "gauge" && strings.ToLower(metricType) != "counter" {
+	if metricType != "gauge" && metricType != "counter" {
 		http.Error(w, "incorrect metric type", http.StatusNotImplemented)
 		return
 	}
