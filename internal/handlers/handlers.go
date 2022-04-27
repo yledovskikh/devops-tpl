@@ -10,31 +10,28 @@ import (
 	"strings"
 )
 
-func updateMetric(metricType string, metricName string, metricValue string) error {
+func updateMetric(metricType string, metricName string, metricValue string) (int, error) {
 	switch strings.ToLower(metricType) {
 	case "gauge":
 		vg, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			return errors.New("incorrect metric value")
+			return http.StatusBadRequest, fmt.Errorf("failed to convert %s to float64 - %s", metricValue, err.Error())
 		}
-		//if storage.RunTimeMetrics == nil {
-		//	storage.gauge = make(map[string]float64)
-		//}
 		//TODO rewrite save metrics to "concurrency safe"
 		storage.Gauge[metricName] = vg
 	case "counter":
 		vg, err := strconv.ParseInt(metricValue, 10, 64)
+
 		if err != nil {
-			return errors.New("incorrect metric value")
+			return http.StatusBadRequest, fmt.Errorf("failed to convert %s to int64 - %s", metricValue, err.Error())
 		}
-		//if storage.counter == nil {
-		//	storage.counter = make(map[string]int64)
-		//}
+
+		//TODO rewrite save metrics to "concurrency safe"
 		storage.Counter[metricName] += vg
 	default:
-		return errors.New("incorrect type (expected gauge or counter)")
+		return http.StatusNotImplemented, errors.New("unknown metric type (expected gauge or counter)")
 	}
-	return nil
+	return http.StatusOK, nil
 }
 
 func PostMetric(w http.ResponseWriter, r *http.Request) {
@@ -47,22 +44,21 @@ func PostMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	if metricType != "gauge" && metricType != "counter" {
-		http.Error(w, "incorrect metric type", http.StatusNotImplemented)
-		return
-	}
-	err := updateMetric(metricType, metricName, metricValue)
+	statusCode, err := updateMetric(metricType, metricName, metricValue)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), statusCode)
 		return
 	}
+	fmt.Fprintf(w, "%s/%s/%s - saved", metricType, metricName, metricValue)
 }
 
 func GetMetric(w http.ResponseWriter, r *http.Request) {
-	metricType := chi.URLParam(r, "metricType")
+
+	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
 	var metricValue string
-	switch strings.ToLower(metricType) {
+	//TODO refactor - move check metriType to storage method
+	switch metricType {
 	case "gauge":
 		if val, ok := storage.Gauge[metricName]; ok {
 			metricValue = fmt.Sprintf("%v", val)
@@ -71,7 +67,11 @@ func GetMetric(w http.ResponseWriter, r *http.Request) {
 		if val, ok := storage.Counter[metricName]; ok {
 			metricValue = fmt.Sprintf("%v", val)
 		}
+	default:
+		http.Error(w, "404 page not found", http.StatusNotFound)
+		return
 	}
+
 	fmt.Println(metricValue)
 	if metricValue == "" {
 		http.Error(w, "404 page not found", http.StatusNotFound)

@@ -18,7 +18,7 @@ func main() {
 
 	//TODO move validate path to handlers
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handlers.PostMetric)
-	r.Get("/value/{metricType:(counter|gauge)}/{metricName:\\w+}", handlers.GetMetric)
+	r.Get("/value/{metricType}/{metricName}", handlers.GetMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
