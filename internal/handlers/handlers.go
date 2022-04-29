@@ -57,7 +57,7 @@ func GetMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
 	var metricValue string
-	//TODO refactor - move check metriType to storage method
+	//TODO refactor - move check metricType to storage method
 	switch metricType {
 	case "gauge":
 		if val, ok := storage.Gauge[metricName]; ok {

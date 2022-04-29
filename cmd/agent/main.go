@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/yledovskikh/devops-tpl/internal/agent"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -15,9 +18,10 @@ const (
 
 func main() {
 
-	exitChan := make(chan int)
-	go agent.TerminateAgent(exitChan)
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	go agent.RefreshMetrics(pollInterval, reportInterval, endpoint, contextURL)
-	exitCode := <-exitChan
-	os.Exit(exitCode)
+	exitCode := <-signalChannel
+	fmt.Println(exitCode)
+
 }
