@@ -18,9 +18,9 @@ type Storage interface {
 }
 
 var (
-	BadRequest     = errors.New("invalid value")
-	NotFound       = errors.New("metric not found")
-	NotImplemented = errors.New("unknown metric type")
+	ErrBadRequest     = errors.New("invalid value")
+	ErrNotFound       = errors.New("metric not found")
+	ErrNotImplemented = errors.New("unknown metric type")
 )
 
 type MetricStore struct {
@@ -41,7 +41,7 @@ func (s *MetricStore) Put(metricType string, metricName string, metricValue stri
 	case "gauge":
 		vg, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			return BadRequest
+			return ErrBadRequest
 		}
 		//TODO rewrite save metrics to "concurrency safe"
 		s.gauge[metricName] = vg
@@ -49,13 +49,13 @@ func (s *MetricStore) Put(metricType string, metricName string, metricValue stri
 		vg, err := strconv.ParseInt(metricValue, 10, 64)
 
 		if err != nil {
-			return BadRequest
+			return ErrBadRequest
 		}
 
 		//TODO rewrite save metrics to "concurrency safe"
 		s.counter[metricName] += vg
 	default:
-		return NotImplemented
+		return ErrNotImplemented
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func (s *MetricStore) Get(metricType string, metricName string) (string, error) 
 			return fmt.Sprintf("%v", val), nil
 		}
 	}
-	return "", NotFound
+	return "", ErrNotFound
 }
 
 //}

@@ -55,11 +55,11 @@ func (s *Server) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 func storageErrToStatus(err error) int {
 	switch err {
-	case storage.BadRequest:
+	case storage.ErrBadRequest:
 		return http.StatusBadRequest
-	case storage.NotFound:
+	case storage.ErrNotFound:
 		return http.StatusNotFound
-	case storage.NotImplemented:
+	case storage.ErrNotImplemented:
 		return http.StatusNotImplemented
 	default:
 		return http.StatusInternalServerError
