@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 ////type RunTimeMetrics struct {
@@ -18,6 +19,7 @@ type Storage interface {
 }
 
 var (
+	mutex             = &sync.RWMutex{}
 	ErrBadRequest     = errors.New("invalid value")
 	ErrNotFound       = errors.New("metric not found")
 	ErrNotImplemented = errors.New("unknown metric type")
@@ -36,14 +38,14 @@ func NewMetricStore() *MetricStore {
 }
 
 func (s *MetricStore) Put(metricType string, metricName string, metricValue string) error {
-
+	mutex.Lock()
+	defer mutex.Unlock()
 	switch strings.ToLower(metricType) {
 	case "gauge":
 		vg, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
 			return ErrBadRequest
 		}
-		//TODO rewrite save metrics to "concurrency safe"
 		s.gauge[metricName] = vg
 	case "counter":
 		vg, err := strconv.ParseInt(metricValue, 10, 64)
@@ -51,8 +53,6 @@ func (s *MetricStore) Put(metricType string, metricName string, metricValue stri
 		if err != nil {
 			return ErrBadRequest
 		}
-
-		//TODO rewrite save metrics to "concurrency safe"
 		s.counter[metricName] += vg
 	default:
 		return ErrNotImplemented
@@ -62,6 +62,9 @@ func (s *MetricStore) Put(metricType string, metricName string, metricValue stri
 }
 
 func (s *MetricStore) Get(metricType string, metricName string) (string, error) {
+
+	mutex.RLock()
+	defer mutex.RUnlock()
 
 	switch metricType {
 	case "gauge":
