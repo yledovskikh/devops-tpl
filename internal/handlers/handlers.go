@@ -31,7 +31,7 @@ func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
 	err := s.storage.Put(metricType, metricName, metricValue)
 
 	if err == nil {
-		w.WriteHeader(http.StatusCreated)
+		//w.WriteHeader(http.StatusOK)
 		return
 	}
 
