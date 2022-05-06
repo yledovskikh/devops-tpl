@@ -1,9 +1,80 @@
 package storage
 
-//type RunTimeMetrics struct {
-//TODO rewrite to interface
-var Counter = make(map[string]int64)
-var Gauge = make(map[string]float64)
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+////type RunTimeMetrics struct {
+////TODO rewrite to interface
+//var Counter = make(map[string]int64)
+//var Gauge = make(map[string]float64)
+
+type Storage interface {
+	Get(metricType string, metricName string) (string, error)
+	Put(metricType string, metricName string, metricValue string) error
+}
+
+var (
+	BadRequest     = errors.New("invalid value")
+	NotFound       = errors.New("metric not found")
+	NotImplemented = errors.New("unknown metric type")
+)
+
+type MetricStore struct {
+	counter map[string]int64
+	gauge   map[string]float64
+}
+
+func NewMetricStore() *MetricStore {
+	return &MetricStore{
+		counter: make(map[string]int64),
+		gauge:   make(map[string]float64),
+	}
+}
+
+func (s *MetricStore) Put(metricType string, metricName string, metricValue string) error {
+
+	switch strings.ToLower(metricType) {
+	case "gauge":
+		vg, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			return BadRequest
+		}
+		//TODO rewrite save metrics to "concurrency safe"
+		s.gauge[metricName] = vg
+	case "counter":
+		vg, err := strconv.ParseInt(metricValue, 10, 64)
+
+		if err != nil {
+			return BadRequest
+		}
+
+		//TODO rewrite save metrics to "concurrency safe"
+		s.counter[metricName] += vg
+	default:
+		return NotImplemented
+	}
+
+	return nil
+}
+
+func (s *MetricStore) Get(metricType string, metricName string) (string, error) {
+
+	switch metricType {
+	case "gauge":
+		if val, ok := s.gauge[metricName]; ok {
+			return fmt.Sprintf("%v", val), nil
+		}
+	case "counter":
+		if val, ok := s.counter[metricName]; ok {
+			return fmt.Sprintf("%v", val), nil
+		}
+	}
+	return "", NotFound
+}
 
 //}
 

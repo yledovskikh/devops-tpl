@@ -87,29 +87,3 @@ func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, en
 		}
 	}
 }
-
-//func TerminateAgent(exitChan chan int) {
-//	signalChannel := make(chan os.Signal, 1)
-//	//TODO refactor: think about how to optimize this structure
-//	signal.Notify(signalChannel,
-//		syscall.SIGTERM,
-//		syscall.SIGINT,
-//		syscall.SIGQUIT)
-//	for {
-//		sig := <-signalChannel
-//		switch sig {
-//		case syscall.SIGTERM:
-//			fmt.Println("sigterm")
-//			exitChan <- 0
-//		case syscall.SIGINT:
-//			fmt.Println("sigint")
-//			exitChan <- 0
-//		case syscall.SIGQUIT:
-//			fmt.Println("sigquit")
-//			exitChan <- 0
-//		default:
-//			fmt.Println("Unknown signal.")
-//			exitChan <- 1
-//		}
-//	}
-//}
