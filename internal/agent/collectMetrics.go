@@ -50,9 +50,9 @@ func collectMetrics(rtm runtime.MemStats, pollCount int64, randomValue float64) 
 	}
 	return m
 }
-func send2server(postMetricURL string, metric metric) error {
-	//url := endpoint + "/" + contextURL + "/" + value.metricType + "/" + value.name + "/" + value.value
-	url := postMetricURL + "/" + metric.metricType + "/" + metric.name + "/" + metric.value
+func send2server(updateMetricURL string, metric metric) error {
+
+	url := updateMetricURL + "/" + metric.metricType + "/" + metric.name + "/" + metric.value
 
 	response, err := http.Post(url, "text/plain", nil)
 	if err != nil {
@@ -65,17 +65,16 @@ func send2server(postMetricURL string, metric metric) error {
 	return nil
 }
 
-func postMetrics(m []metric, endpoint string, contextURL string) {
-	postMetricURL := endpoint + "/" + contextURL
+func postMetrics(m []metric, updateMetricURL string) {
 	fmt.Println(time.Now().Format(time.UnixDate), "Push metrics:")
 	for _, metric := range m {
-		if err := send2server(postMetricURL, metric); err != nil {
+		if err := send2server(updateMetricURL, metric); err != nil {
 			fmt.Println(err)
 		}
 	}
 }
 
-func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, endpoint string, contextURL string) {
+func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, updateMetricURL string) {
 	var m []metric
 	var rtm runtime.MemStats
 	var pollCount int64 = 0
@@ -91,7 +90,7 @@ func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, en
 		case <-reportIntervalTicker.C:
 			r := rand.Float64()
 			m = collectMetrics(rtm, pollCount, r)
-			postMetrics(m, endpoint, contextURL)
+			postMetrics(m, updateMetricURL)
 			pollCount = 0
 		}
 	}
