@@ -50,9 +50,9 @@ func collectMetrics(rtm runtime.MemStats, pollCount int64, randomValue float64) 
 	}
 	return m
 }
-func send2server(postMetricUrl string, metric metric) error {
+func send2server(postMetricURL string, metric metric) error {
 	//url := endpoint + "/" + contextURL + "/" + value.metricType + "/" + value.name + "/" + value.value
-	url := postMetricUrl + "/" + metric.metricType + "/" + metric.name + "/" + metric.value
+	url := postMetricURL + "/" + metric.metricType + "/" + metric.name + "/" + metric.value
 
 	response, err := http.Post(url, "text/plain", nil)
 	if err != nil {
@@ -66,10 +66,10 @@ func send2server(postMetricUrl string, metric metric) error {
 }
 
 func postMetrics(m []metric, endpoint string, contextURL string) {
-	postMetricUrl := endpoint + "/" + contextURL
+	postMetricURL := endpoint + "/" + contextURL
 	fmt.Println(time.Now().Format(time.UnixDate), "Push metrics:")
 	for _, metric := range m {
-		if err := send2server(postMetricUrl, metric); err != nil {
+		if err := send2server(postMetricURL, metric); err != nil {
 			fmt.Println(err)
 		}
 	}
