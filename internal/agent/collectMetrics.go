@@ -84,6 +84,7 @@ func RefreshMetrics(pollInterval time.Duration, reportInterval time.Duration, en
 			fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 		case <-reportIntervalTicker.C:
 			postMetrics(m, endpoint, contextURL)
+			pollCount = 0
 		}
 	}
 }
