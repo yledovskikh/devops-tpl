@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"math/rand"
 	"net/http"
@@ -102,38 +104,57 @@ func (a *Agent) collectMetrics(rtm runtime.MemStats, pollCount int64, randomValu
 	//}
 	//return m
 }
-func send2server(updateMetricURL string) error {
+func send2server(url string, body []byte) error {
 
-	response, err := http.Post(updateMetricURL, "text/plain", nil)
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
+
+	req.Header.Add("Content-Type", "application/json")
+	response, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
 	err = response.Body.Close()
 	if err != nil {
 		return err
 	}
+	fmt.Println(url)
 	return nil
 }
+
+//TODO join func postGauges and postCounter
 
 func (a *Agent) postGauges(updateMetricURL string) {
 	fmt.Println(time.Now().Format(time.UnixDate), "Push Gauges metrics:")
 	for mName, mValue := range a.storage.GetAllGauges() {
 		url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%f", mValue)
-		if err := send2server(url); err != nil {
+		//url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%f", mValue)
+
+		body, err := serializer.EncodingMetricGauge(mName, mValue)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		if err = send2server(url, body); err != nil {
 			fmt.Println(err)
 		}
 	}
 }
 
-func (a *Agent) postCounter(updateMetricURL string) {
-	fmt.Println(time.Now().Format(time.UnixDate), "Push Counter metrics:")
-	for mName, mValue := range a.storage.GetAllCounters() {
-		url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%d", mValue)
-		if err := send2server(url); err != nil {
-			fmt.Println(err)
-		}
-	}
-}
+//func (a *Agent) postCounter(updateMetricURL string) {
+//	fmt.Println(time.Now().Format(time.UnixDate), "Push Counter metrics:")
+//	for mName, mValue := range a.storage.GetAllCounters() {
+//		url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%d", mValue)
+//		if err := send2server(url); err != nil {
+//			fmt.Println(err)
+//		}
+//	}
+//}
 
 func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, updateMetricURL string) {
 	var rtm runtime.MemStats
@@ -151,7 +172,7 @@ func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, u
 			r := rand.Float64()
 			a.collectMetrics(rtm, pollCount, r)
 			a.postGauges(updateMetricURL)
-			a.postCounter(updateMetricURL)
+			//a.postCounter(updateMetricURL)
 			pollCount = 0
 		}
 	}
