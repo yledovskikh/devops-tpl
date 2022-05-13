@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/yledovskikh/devops-tpl/internal/agent"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,10 +19,11 @@ const (
 )
 
 func main() {
-
+	s := storage.NewMetricStore()
+	h := agent.New(s)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	go agent.RefreshMetrics(pollInterval, reportInterval, updateMetricURL)
+	go h.Exec(pollInterval, reportInterval, updateMetricURL)
 	exitCode := <-signalChannel
 	fmt.Println(exitCode)
 

@@ -16,6 +16,8 @@ import (
 type Storage interface {
 	Get(metricType string, metricName string) (string, error)
 	Put(metricType string, metricName string, metricValue string) error
+	GetAllGauges() map[string]float64
+	GetAllCounters() map[string]int64
 }
 
 var (
@@ -26,14 +28,21 @@ var (
 )
 
 type MetricStore struct {
-	counter map[string]int64
-	gauge   map[string]float64
+	counters map[string]int64
+	gauges   map[string]float64
 }
+
+//type Metrics struct {
+//	ID    string   `json:"id"`              // имя метрики
+//	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+//	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+//	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+//}
 
 func NewMetricStore() *MetricStore {
 	return &MetricStore{
-		counter: make(map[string]int64),
-		gauge:   make(map[string]float64),
+		counters: make(map[string]int64),
+		gauges:   make(map[string]float64),
 	}
 }
 
@@ -46,14 +55,14 @@ func (s *MetricStore) Put(metricType string, metricName string, metricValue stri
 		if err != nil {
 			return ErrBadRequest
 		}
-		s.gauge[metricName] = vg
+		s.gauges[metricName] = vg
 	case "counter":
 		vg, err := strconv.ParseInt(metricValue, 10, 64)
 
 		if err != nil {
 			return ErrBadRequest
 		}
-		s.counter[metricName] += vg
+		s.counters[metricName] += vg
 	default:
 		return ErrNotImplemented
 	}
@@ -68,15 +77,35 @@ func (s *MetricStore) Get(metricType string, metricName string) (string, error) 
 
 	switch metricType {
 	case "gauge":
-		if val, ok := s.gauge[metricName]; ok {
+		if val, ok := s.gauges[metricName]; ok {
 			return fmt.Sprintf("%v", val), nil
 		}
 	case "counter":
-		if val, ok := s.counter[metricName]; ok {
+		if val, ok := s.counters[metricName]; ok {
 			return fmt.Sprintf("%v", val), nil
 		}
 	}
 	return "", ErrNotFound
+}
+
+func (s *MetricStore) GetAllGauges() map[string]float64 {
+	mutex.RLock()
+	g := make(map[string]float64)
+	defer mutex.RUnlock()
+	for k, v := range s.gauges {
+		g[k] = v
+	}
+	return g
+}
+
+func (s *MetricStore) GetAllCounters() map[string]int64 {
+	mutex.RLock()
+	c := make(map[string]int64)
+	defer mutex.RUnlock()
+	for k, v := range s.counters {
+		c[k] = v
+	}
+	return c
 }
 
 //}
