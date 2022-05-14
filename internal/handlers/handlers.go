@@ -174,12 +174,12 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		}
 		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
 	case "counter":
-		val, err := s.storage.GetGauge(m.ID)
+		val, err := s.storage.GetCounter(m.ID)
 		if err != nil {
 			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
 			return
 		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
 
 	}
 
