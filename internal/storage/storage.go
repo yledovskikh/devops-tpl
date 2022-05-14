@@ -16,6 +16,8 @@ import (
 type Storage interface {
 	Get(metricType string, metricName string) (string, error)
 	Put(metricType string, metricName string, metricValue string) error
+	PutGauge(metricName string, metricValue float64) error
+	PutCounter(metricName string, metricValue int64) error
 	GetAllGauges() map[string]float64
 	GetAllCounters() map[string]int64
 }
@@ -32,13 +34,6 @@ type MetricStore struct {
 	gauges   map[string]float64
 }
 
-//type Metrics struct {
-//	ID    string   `json:"id"`              // имя метрики
-//	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-//	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-//	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-//}
-
 func NewMetricStore() *MetricStore {
 	return &MetricStore{
 		counters: make(map[string]int64),
@@ -46,6 +41,7 @@ func NewMetricStore() *MetricStore {
 	}
 }
 
+//TODO подумать о необходимости этой функции
 func (s *MetricStore) Put(metricType string, metricName string, metricValue string) error {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -67,6 +63,20 @@ func (s *MetricStore) Put(metricType string, metricName string, metricValue stri
 		return ErrNotImplemented
 	}
 
+	return nil
+}
+
+func (s *MetricStore) PutGauge(metricName string, metricValue float64) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	s.gauges[metricName] = metricValue
+	return nil
+}
+
+func (s *MetricStore) PutCounter(metricName string, metricValue int64) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	s.counters[metricName] = metricValue
 	return nil
 }
 

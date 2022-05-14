@@ -19,7 +19,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.PostMetric)
+	r.Post("/update", h.PostMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))

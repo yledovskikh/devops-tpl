@@ -132,7 +132,7 @@ func send2server(url string, body []byte) error {
 func (a *Agent) postGauges(updateMetricURL string) {
 	fmt.Println(time.Now().Format(time.UnixDate), "Push Gauges metrics:")
 	for mName, mValue := range a.storage.GetAllGauges() {
-		url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%f", mValue)
+		url := updateMetricURL
 		//url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%f", mValue)
 
 		body, err := serializer.EncodingMetricGauge(mName, mValue)
