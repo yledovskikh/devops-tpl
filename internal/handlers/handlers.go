@@ -61,6 +61,27 @@ func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
 	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
 	//	return
 	//}
+
+	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
+	err := s.storage.Put(metricType, metricName, metricValue)
+
+	if err == nil {
+		//w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	status := storageErrToStatus(err)
+	w.WriteHeader(status)
+}
+
+func (s *Server) PostJsonMetric(w http.ResponseWriter, r *http.Request) {
+
+	//if r.Header.Get("Content-Type") != "text/plain" {
+	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
+	//	return
+	//}
 	//
 	//m, err := serializer.DecodeBody(bytes.NewReader(b))
 	////	if err != nil {
