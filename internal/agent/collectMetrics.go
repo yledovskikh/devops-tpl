@@ -123,12 +123,18 @@ func send2server(url string, body []byte) error {
 		return err
 	}
 
+	//bodyBytes, err := io.ReadAll(response.Body)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//bodyString := string(bodyBytes)
+	//log.Printf("Body: \n %s", bodyString)
+
 	err = response.Body.Close()
 	if err != nil {
 		return err
 	}
-	log.Printf("INFO metric %s was sent\n", body)
-	fmt.Println(url)
+	log.Printf("INFO metric %s was sent to %s \n", body, url)
 	return nil
 }
 
@@ -178,9 +184,9 @@ func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, u
 		case <-pollIntervalTicker.C:
 			pollCount++
 			runtime.ReadMemStats(&rtm)
+			a.collectMetrics(rtm)
 			fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 		case <-reportIntervalTicker.C:
-			a.collectMetrics(rtm)
 			a.postGauges(updateMetricURL)
 			a.postCounter(updateMetricURL)
 		}

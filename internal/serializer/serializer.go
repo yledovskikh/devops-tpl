@@ -12,6 +12,12 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
+//TODO Проверить нужно или нет
+type ServerResponse struct {
+	Result string `json:"result"`
+	Error  string `json:"error"`
+}
+
 type Metrics []Metric
 
 func EncodingMetricGauge(id string, value float64) ([]byte, error) {
@@ -31,3 +37,12 @@ func DecodingMetric(b io.Reader) (Metric, error) {
 	}
 	return m, err
 }
+
+//func EncodeServerResponse(resp ServerResponse) ([]byte, error) {
+//	j, err := json.Marshal(resp)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to encode server response: %s", err.Error())
+//	}
+//	return j, nil
+//
+//}

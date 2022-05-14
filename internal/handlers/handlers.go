@@ -126,6 +126,8 @@ func (s *Server) PostJSONMetric(w http.ResponseWriter, r *http.Request) {
 		m, _ := s.storage.Get(m.MType, m.ID)
 		fmt.Println("Debug: \n", m)
 	}
+	rb, err := serializer.EncodeServerResponse(serializer.ServerResponse{})
+	w.Write(rb)
 	//return
 }
 
