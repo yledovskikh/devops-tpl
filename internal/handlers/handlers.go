@@ -149,18 +149,18 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("Error read body: ", err.Error())
 	}
 
 	m, err := serializer.DecodingMetric(bytes.NewReader(b))
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("Eroor Descoding body", err.Error())
 		return
 	}
 
-	metric, err := s.storage.Get(m.MType, m.MType)
+	metric, err := s.storage.Get(m.MType, m.ID)
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
 		return
 	}
 
