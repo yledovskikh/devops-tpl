@@ -136,6 +136,9 @@ func (a *Agent) postGauges(updateMetricURL string) {
 		//url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%f", mValue)
 
 		body, err := serializer.EncodingMetricGauge(mName, mValue)
+		//TODO remove debug info
+		fmt.Printf(string(body))
+
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -146,15 +149,23 @@ func (a *Agent) postGauges(updateMetricURL string) {
 	}
 }
 
-//func (a *Agent) postCounter(updateMetricURL string) {
-//	fmt.Println(time.Now().Format(time.UnixDate), "Push Counter metrics:")
-//	for mName, mValue := range a.storage.GetAllCounters() {
-//		url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%d", mValue)
-//		if err := send2server(url); err != nil {
-//			fmt.Println(err)
-//		}
-//	}
-//}
+func (a *Agent) postCounter(updateMetricURL string) {
+	fmt.Println(time.Now().Format(time.UnixDate), "Push Counter metrics:")
+	for mName, mValue := range a.storage.GetAllCounters() {
+		url := updateMetricURL
+		body, err := serializer.EncodingMetricCounter(mName, mValue)
+		//TODO remove debug info
+		fmt.Printf(string(body))
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		if err = send2server(url, body); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
 
 func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, updateMetricURL string) {
 	var rtm runtime.MemStats
@@ -172,7 +183,7 @@ func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, u
 			r := rand.Float64()
 			a.collectMetrics(rtm, pollCount, r)
 			a.postGauges(updateMetricURL)
-			//a.postCounter(updateMetricURL)
+			a.postCounter(updateMetricURL)
 			pollCount = 0
 		}
 	}

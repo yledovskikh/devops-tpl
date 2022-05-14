@@ -76,7 +76,7 @@ func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 }
 
-func (s *Server) PostJsonMetric(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PostJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	//if r.Header.Get("Content-Type") != "text/plain" {
 	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)

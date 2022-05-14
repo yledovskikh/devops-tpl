@@ -19,7 +19,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/update", h.PostJsonMetric)
+	r.Post("/update", h.PostJSONMetric)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.PostMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetMetric)
 

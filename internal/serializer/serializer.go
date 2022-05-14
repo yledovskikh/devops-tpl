@@ -18,6 +18,10 @@ func EncodingMetricGauge(id string, value float64) ([]byte, error) {
 	return json.Marshal(Metric{ID: id, MType: "gauge", Value: &value})
 }
 
+func EncodingMetricCounter(id string, value int64) ([]byte, error) {
+	return json.Marshal(Metric{ID: id, MType: "counter", Delta: &value})
+}
+
 func DecodingMetric(b io.Reader) (Metric, error) {
 
 	var m Metric
