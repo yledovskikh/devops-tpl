@@ -158,10 +158,29 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metric, err := s.storage.Get(m.MType, m.ID)
-	if err != nil {
-		log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-		return
+	//metric, err := s.storage.Get(m.MType, m.ID)
+	//if err != nil {
+	//	log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+	//	return
+	//}
+
+	var metric serializer.Metric
+	switch m.MType {
+	case "gauge":
+		val, err := s.storage.GetGauge(m.ID)
+		if err != nil {
+			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			return
+		}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
+	case "counter":
+		val, err := s.storage.GetGauge(m.ID)
+		if err != nil {
+			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			return
+		}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
+
 	}
 
 	response, err := json.Marshal(metric)

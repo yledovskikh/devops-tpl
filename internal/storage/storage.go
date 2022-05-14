@@ -20,6 +20,8 @@ type Storage interface {
 	PutCounter(metricName string, metricValue int64) error
 	GetAllGauges() map[string]float64
 	GetAllCounters() map[string]int64
+	GetGauge(string) (float64, error)
+	GetCounter(string) (int64, error)
 }
 
 var (
@@ -80,6 +82,24 @@ func (s *MetricStore) PutCounter(metricName string, metricValue int64) error {
 	return nil
 }
 
+//func (s *MetricStore) GetMetric(metricType string, metricName string) (, error) {
+//
+//	mutex.RLock()
+//	defer mutex.RUnlock()
+//
+//	switch metricType {
+//	case "gauge":
+//		if val, ok := s.gauges[metricName]; ok {
+//			return fmt.Sprintf("%v", val), nil
+//		}
+//	case "counter":
+//		if val, ok := s.counters[metricName]; ok {
+//			return fmt.Sprintf("%v", val), nil
+//		}
+//	}
+//	return "", ErrNotFound
+//}
+
 func (s *MetricStore) Get(metricType string, metricName string) (string, error) {
 
 	mutex.RLock()
@@ -117,6 +137,38 @@ func (s *MetricStore) GetAllCounters() map[string]int64 {
 	}
 	return c
 }
+
+func (s *MetricStore) GetGauge(metricName string) (float64, error) {
+
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	if val, ok := s.gauges[metricName]; ok {
+		return val, nil
+	}
+	return 0, ErrNotFound
+}
+
+func (s *MetricStore) GetCounter(metricName string) (int64, error) {
+
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	if val, ok := s.counters[metricName]; ok {
+		return val, nil
+	}
+	return 0, ErrNotFound
+}
+
+//func (s *MetricStore) GetCounter() map[string]int64 {
+//	mutex.RLock()
+//	c := make(map[string]int64)
+//	defer mutex.RUnlock()
+//	for k, v := range s.counters {
+//		c[k] = v
+//	}
+//	return c
+//}
 
 //}
 
