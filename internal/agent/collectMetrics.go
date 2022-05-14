@@ -136,8 +136,6 @@ func (a *Agent) postGauges(updateMetricURL string) {
 		//url := updateMetricURL + "/gauge/" + mName + "/" + fmt.Sprintf("%f", mValue)
 
 		body, err := serializer.EncodingMetricGauge(mName, mValue)
-		//TODO remove debug info
-		fmt.Printf(string(body))
 
 		if err != nil {
 			fmt.Println(err)
@@ -154,8 +152,6 @@ func (a *Agent) postCounter(updateMetricURL string) {
 	for mName, mValue := range a.storage.GetAllCounters() {
 		url := updateMetricURL
 		body, err := serializer.EncodingMetricCounter(mName, mValue)
-		//TODO remove debug info
-		fmt.Printf(string(body))
 
 		if err != nil {
 			fmt.Println(err)
