@@ -76,7 +76,7 @@ func (s *MetricStore) PutGauge(metricName string, metricValue float64) error {
 func (s *MetricStore) PutCounter(metricName string, metricValue int64) error {
 	mutex.Lock()
 	defer mutex.Unlock()
-	s.counters[metricName] = metricValue
+	s.counters[metricName] += metricValue
 	return nil
 }
 

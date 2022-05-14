@@ -35,7 +35,10 @@ func (a *Agent) Put(metricType string, metricName string, metricValue string) {
 	}
 }
 
-func (a *Agent) collectMetrics(rtm runtime.MemStats, pollCount int64, randomValue float64) {
+func (a *Agent) collectMetrics(rtm runtime.MemStats) {
+
+	rand.Seed(time.Now().UnixNano())
+	r := rand.Float64()
 
 	a.Put("gauge", "Alloc", strconv.FormatUint(rtm.Alloc, 10))
 	a.Put("gauge", "BuckHashSys", strconv.FormatUint(rtm.BuckHashSys, 10))
@@ -46,8 +49,8 @@ func (a *Agent) collectMetrics(rtm runtime.MemStats, pollCount int64, randomValu
 	a.Put("gauge", "Alloc", strconv.FormatUint(rtm.Alloc, 10))
 	//...
 	////Custom metrics
-	a.Put("counter", "PollCount", strconv.FormatInt(pollCount, 10))
-	a.Put("gauge", "RandomValue", strconv.FormatFloat(randomValue, 'f', -1, 64))
+	a.Put("counter", "PollCount", "1")
+	a.Put("gauge", "RandomValue", strconv.FormatFloat(r, 'f', -1, 64))
 
 	//
 	//{ "gauge", "HeapObjects", strconv.FormatUint(rtm.HeapObjects, 10)},
@@ -168,7 +171,6 @@ func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, u
 	var pollCount int64 = 0
 	pollIntervalTicker := time.NewTicker(pollInterval)
 	reportIntervalTicker := time.NewTicker(reportInterval)
-	rand.Seed(time.Now().UnixNano())
 	for {
 		select {
 		case <-pollIntervalTicker.C:
@@ -176,11 +178,9 @@ func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, u
 			runtime.ReadMemStats(&rtm)
 			fmt.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 		case <-reportIntervalTicker.C:
-			r := rand.Float64()
-			a.collectMetrics(rtm, pollCount, r)
+			a.collectMetrics(rtm)
 			a.postGauges(updateMetricURL)
 			a.postCounter(updateMetricURL)
-			pollCount = 0
 		}
 	}
 }
