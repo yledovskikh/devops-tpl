@@ -119,14 +119,14 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	case "gauge":
 		s.storage.PutGauge(m.ID, *m.Value)
 		//TODO remove debug message
-		m, _ := s.storage.Get(m.MType, m.ID)
-		fmt.Println("Debug: \n", m)
+		value, _ := s.storage.Get(m.MType, m.ID)
+		log.Printf("Debug gauge: \n metric name: %s value: %s \n", m.MType, value)
 
 	case "counter":
 		s.storage.PutCounter(m.ID, *m.Delta)
 		//TODO remove debug message
-		m, _ := s.storage.Get(m.MType, m.ID)
-		fmt.Println("Debug: \n", m)
+		value, _ := s.storage.Get(m.MType, m.ID)
+		log.Printf("Debug counter: \n metric name: %s value: %s \n", m.MType, value)
 	}
 	//return
 }
@@ -154,7 +154,7 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	m, err := serializer.DecodingMetric(bytes.NewReader(b))
 	if err != nil {
-		log.Printf("Eroor Descoding body: %s", err.Error())
+		log.Printf("Error Descoding body: %s", err.Error())
 		return
 	}
 
