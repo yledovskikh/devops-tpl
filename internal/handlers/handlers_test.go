@@ -128,7 +128,7 @@ func TestServer_PostMetric(t *testing.T) {
 			}
 			tr := httptest.NewRecorder()
 			r := chi.NewRouter()
-			r.HandleFunc("/update/{metricType}/{metricName}/{metricValue}", h.PostMetric)
+			r.HandleFunc("/update/{metricType}/{metricName}/{metricValue}", h.UpdateMetric)
 			r.ServeHTTP(tr, req)
 			res := tr.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
