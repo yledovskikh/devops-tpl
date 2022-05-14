@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -55,7 +57,7 @@ func New(storage storage.Storage) *Server {
 //
 //}
 
-func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
+func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 
 	//if r.Header.Get("Content-Type") != "text/plain" {
 	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
@@ -76,7 +78,7 @@ func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 }
 
-func (s *Server) PostJSONMetric(w http.ResponseWriter, r *http.Request) {
+func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	//if r.Header.Get("Content-Type") != "text/plain" {
 	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
@@ -126,8 +128,6 @@ func (s *Server) PostJSONMetric(w http.ResponseWriter, r *http.Request) {
 		m, _ := s.storage.Get(m.MType, m.ID)
 		fmt.Println("Debug: \n", m)
 	}
-	rb, err := serializer.EncodeServerResponse(serializer.ServerResponse{})
-	w.Write(rb)
 	//return
 }
 
@@ -142,6 +142,37 @@ func (s *Server) PostJSONMetric(w http.ResponseWriter, r *http.Request) {
 //	w.WriteHeader(code)
 //	w.Write(responseBody)
 //}
+
+func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	m, err := serializer.DecodingMetric(bytes.NewReader(b))
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	metric, err := s.storage.Get(m.MType, m.MType)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	response, err := json.Marshal(metric)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	w.Write(response)
+
+}
 
 func (s *Server) GetMetric(w http.ResponseWriter, r *http.Request) {
 

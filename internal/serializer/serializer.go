@@ -20,14 +20,6 @@ type ServerResponse struct {
 
 type Metrics []Metric
 
-func EncodingMetricGauge(id string, value float64) ([]byte, error) {
-	return json.Marshal(Metric{ID: id, MType: "gauge", Value: &value})
-}
-
-func EncodingMetricCounter(id string, value int64) ([]byte, error) {
-	return json.Marshal(Metric{ID: id, MType: "counter", Delta: &value})
-}
-
 func DecodingMetric(b io.Reader) (Metric, error) {
 
 	var m Metric
@@ -36,6 +28,14 @@ func DecodingMetric(b io.Reader) (Metric, error) {
 		return Metric{}, err
 	}
 	return m, err
+}
+
+func EncodingMetricGauge(id string, value float64) ([]byte, error) {
+	return json.Marshal(Metric{ID: id, MType: "gauge", Value: &value})
+}
+
+func EncodingMetricCounter(id string, value int64) ([]byte, error) {
+	return json.Marshal(Metric{ID: id, MType: "counter", Delta: &value})
 }
 
 //func EncodeServerResponse(resp ServerResponse) ([]byte, error) {

@@ -19,9 +19,10 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/update", h.PostJSONMetric)
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.PostMetric)
+	r.Post("/update", h.UpdateJSONMetric)
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetMetric)
+	r.Post("/value", h.GetJSONMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
