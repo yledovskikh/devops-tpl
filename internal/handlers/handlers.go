@@ -145,7 +145,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -189,7 +189,11 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(response)
+	id, err := w.Write(response)
+	if err != nil {
+		log.Printf("Error write client: %s", err.Error())
+	}
+	log.Printf("Response id:", id)
 
 }
 
