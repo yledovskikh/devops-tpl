@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -126,6 +127,7 @@ func send2server(url string, body []byte) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("INFO metric %s was sent\n", body)
 	fmt.Println(url)
 	return nil
 }
