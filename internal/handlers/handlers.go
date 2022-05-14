@@ -88,7 +88,10 @@ func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	m, err := serializer.DecodingMetric(bytes.NewReader(b))
-
+	if err != nil {
+		//TODO Обработать корректноый статус
+		w.WriteHeader(http.StatusBadRequest)
+	}
 	switch strings.ToLower(m.MType) {
 	case "gauge":
 		s.storage.PutGauge(m.ID, *m.Value)
@@ -102,7 +105,7 @@ func (s *Server) PostMetric(w http.ResponseWriter, r *http.Request) {
 		m, _ := s.storage.Get(m.MType, m.ID)
 		fmt.Println("Debug: \n", m)
 	}
-	return
+	//return
 }
 
 //func sendResponse(w http.ResponseWriter, code int, resp serializer.ServerResponse) {
