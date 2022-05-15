@@ -71,11 +71,11 @@ func (s *MetricStore) GetAllGauges() map[string]float64 {
 func (s *MetricStore) SetCounter(metricName string, metricValue int64) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	if _, ok := s.counters[metricName]; ok {
-		s.counters[metricName] += metricValue
-	} else {
-		s.counters[metricName] = metricValue
-	}
+	s.counters[metricName] += metricValue
+	//if _, ok := s.counters[metricName]; ok {
+	//} else {
+	//	s.counters[metricName] = metricValue
+	//}
 	log.Printf("save metric counter - %s:%d", metricName, metricValue)
 
 }
