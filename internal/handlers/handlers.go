@@ -39,7 +39,6 @@ func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Error function UpdateJSONMetric ioutil.ReadAll(r.Body)")
@@ -53,7 +52,32 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		status := storageErrToStatus(err)
 		w.WriteHeader(status)
 	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	resp := make(map[string]string)
+	resp["message"] = "Status Created"
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		log.Printf("Error happened in JSON marshal. Err: %s", err.Error())
+	}
+	w.Write(jsonResp)
 }
+
+//func sendResponse(w http.ResponseWriter, code int, resp serializer.ServerResponse, compress bool) {
+//	responseBody, err := serializer.EncodeServerResponse(resp, compress)
+//	if err != nil {
+//		w.WriteHeader(http.StatusInternalServerError)
+//		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
+//		return
+//	}
+//
+//	if compress {
+//		w.Header().Set("Content-Encoding", "gzip")
+//	}
+//	w.WriteHeader(code)
+//	w.Write(responseBody)
+//}
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 

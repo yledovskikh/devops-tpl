@@ -108,7 +108,7 @@ func (s *MetricStore) SetMetric(m serializer.Metric) error {
 	case "counter":
 		s.SetCounter(m.ID, *m.Delta)
 		return nil
-	case "invalidmetrictype":
+	case "notimplemented":
 		return ErrBadRequest
 	}
 	return ErrNotImplemented

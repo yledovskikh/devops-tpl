@@ -35,14 +35,14 @@ func DecodingStringMetric(metricType, metricName, metricValue string) Metric {
 	case "gauge":
 		value, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			return Metric{MType: "invalidmetrictype"}
+			return Metric{MType: "notimplemented"}
 		}
 		m := Metric{ID: metricName, MType: metricType, Value: &value}
 		return m
 	case "counter":
 		value, err := strconv.ParseInt(metricValue, 10, 64)
 		if err != nil {
-			return Metric{MType: "invalidmetrictype"}
+			return Metric{MType: "notimplemented"}
 		}
 		m := Metric{ID: metricName, MType: metricType, Delta: &value}
 		return m
