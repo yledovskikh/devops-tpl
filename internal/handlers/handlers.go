@@ -22,47 +22,7 @@ func New(storage storage.Storage) *Server {
 		storage: storage,
 	}
 }
-
-//func UpdateMetricJSONHandler(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-//
-//	requestCompressed :=
-//		strings.Contains(strings.Join(r.Header["Content-Encoding"], ","), "gzip")
-//	compressResponse :=
-//		strings.Contains(strings.Join(r.Header["Accept-Encoding"], ","), "gzip")
-//
-//	b, err := ioutil.ReadAll(r.Body)
-//	if err != nil {
-//		e := fmt.Sprintf("failed to read body: %s", err.Error())
-//		sendResponse(w, http.StatusBadRequest, serializer.ServerResponse{Error: e}, compressResponse)
-//	}
-//
-//	if requestCompressed {
-//		b, err = archive.Decompress(b)
-//		if err != nil {
-//			e := fmt.Sprintf("Failed to decompress request body: %s", err.Error())
-//			sendResponse(w, http.StatusBadRequest, serializer.ServerResponse{Error: e}, compressResponse)
-//			return
-//		}
-//	}
-//
-//	m, err := serializer.DecodeBody(bytes.NewReader(b))
-//	if err != nil {
-//		e := fmt.Sprintf("Failed to decode request body: %s", err.Error())
-//		sendResponse(w, http.StatusBadRequest, serializer.ServerResponse{Error: e}, compressResponse)
-//		return
-//	}
-//	updateMetric(m)
-//	sendResponse(w, http.StatusOK, serializer.ServerResponse{Result: "metric was saved"}, compressResponse)
-//
-//}
-
 func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-
-	//if r.Header.Get("Content-Type") != "text/plain" {
-	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
-	//	return
-	//}
 
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
@@ -70,7 +30,6 @@ func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	err := s.storage.Put(metricType, metricName, metricValue)
 
 	if err == nil {
-		//w.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -79,30 +38,6 @@ func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
-
-	//if r.Header.Get("Content-Type") != "text/plain" {
-	//	http.Error(w, "Content-Type text/plain is required!", http.StatusUnsupportedMediaType)
-	//	return
-	//}
-	//
-	//m, err := serializer.DecodeBody(bytes.NewReader(b))
-	////	if err != nil {
-	////		e := fmt.Sprintf("Failed to decode request body: %s", err.Error())
-	////		sendResponse(w, http.StatusBadRequest, serializer.ServerResponse{Error: e}, compressResponse)
-	////		return
-	////	}
-	////	updateMetric(m)
-	////	sendResponse(w, http.StatusOK, serializer.ServerResponse{Result: "metric was saved"}, compressResponse)
-
-	//err := s.storage.Put()
-	//
-	//if err == nil {
-	//	//w.WriteHeader(http.StatusOK)
-	//	return
-	//}
-	//
-	//status := storageErrToStatus(err)
-	//w.WriteHeader(status)
 
 	w.Header().Set("Content-Type", "application/json")
 	b, err := ioutil.ReadAll(r.Body)
@@ -128,20 +63,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		value, _ := s.storage.Get(m.MType, m.ID)
 		log.Printf("Debug counter: \n metric name: %s value: %s \n", m.MType, value)
 	}
-	//return
 }
-
-//func sendResponse(w http.ResponseWriter, code int, resp serializer.ServerResponse) {
-//	responseBody, err := serializer.EncodeServerResponse(resp)
-//	if err != nil {
-//		w.WriteHeader(http.StatusInternalServerError)
-//		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
-//		return
-//	}
-//
-//	w.WriteHeader(code)
-//	w.Write(responseBody)
-//}
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
@@ -157,12 +79,6 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error Descoding body: %s", err.Error())
 		return
 	}
-
-	//metric, err := s.storage.Get(m.MType, m.ID)
-	//if err != nil {
-	//	log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-	//	return
-	//}
 
 	var metric serializer.Metric
 	switch m.MType {
