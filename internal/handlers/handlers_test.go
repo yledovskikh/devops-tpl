@@ -57,8 +57,8 @@ func TestServer_GetURLMetricMetric(t *testing.T) {
 
 			s := storage.NewMetricStore()
 			//ms := map[string]string{"metricType": tt.metric.metricType, "metricName": tt.metric.metricName, "metricValue": tt.metric.metricValue}
-			m, _ := serializer.DecodingStringMetric(tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
-			err := s.SetMetric(m)
+			m := serializer.DecodingStringMetric(tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
+			s.SetMetric(m)
 			fmt.Println("Test Metric", tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
 			h := New(s)
 

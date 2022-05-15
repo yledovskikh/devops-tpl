@@ -2,7 +2,7 @@ package serializer
 
 import (
 	"encoding/json"
-	"net/http"
+	"log"
 
 	//"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io"
@@ -18,37 +18,37 @@ type Metric struct {
 
 type Metrics []Metric
 
-func DecodingJSONMetric(b io.Reader) (Metric, error) {
+func DecodingJSONMetric(b io.Reader) Metric {
 
 	var m Metric
 	err := json.NewDecoder(b).Decode(&m)
 	if err != nil {
-		return Metric{}, err
+		log.Println("Error invalid decode request")
+		return Metric{}
 	}
-	return m, err
+	return m
 }
 
-func DecodingStringMetric(metricType, metricName, metricValue string) (Metric, int) {
+func DecodingStringMetric(metricType, metricName, metricValue string) Metric {
 
-	//TODO rewrite return status error
 	switch metricType {
 	case "gauge":
 		value, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			return Metric{}, http.StatusBadRequest
+			return Metric{MType: "invalidmetrictype"}
 		}
 		m := Metric{ID: metricName, MType: metricType, Value: &value}
-		return m, http.StatusOK
+		return m
 	case "counter":
 		value, err := strconv.ParseInt(metricValue, 10, 64)
 		if err != nil {
-			return Metric{}, http.StatusBadRequest
+			return Metric{MType: "invalidmetrictype"}
 		}
 		m := Metric{ID: metricName, MType: metricType, Delta: &value}
-		return m, http.StatusOK
+		return m
 	}
 	//err := fmt.Errorf("unknown metric type %s, expected (gauge|counter)", metricType)
-	return Metric{}, http.StatusNotImplemented
+	return Metric{}
 }
 
 ////CHECK Methods

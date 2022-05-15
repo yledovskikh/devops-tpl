@@ -29,11 +29,12 @@ func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
 	//ms := map[string]string{"metricType": metricType, "metricName": metricName, "metricValue": metricValue}
-	m, status := serializer.DecodingStringMetric(metricType, metricName, metricValue)
-	if status != http.StatusOK {
+	m := serializer.DecodingStringMetric(metricType, metricName, metricValue)
+	err := s.storage.SetMetric(m)
+	if err != nil {
+		status := storageErrToStatus(err)
 		w.WriteHeader(status)
 	}
-	s.storage.SetMetric(m)
 }
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -41,15 +42,17 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		log.Println("Error function UpdateJSONMetric ioutil.ReadAll(r.Body)")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	m, err := serializer.DecodingJSONMetric(bytes.NewReader(b))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	err = s.storage.SetMetric(m)
-	status := storageErrToStatus(err)
-	w.WriteHeader(status)
+
+	if err != nil {
+		status := storageErrToStatus(err)
+		w.WriteHeader(status)
+	}
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -61,11 +64,11 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error read body: %s", err.Error())
 	}
 
-	m, err := serializer.DecodingJSONMetric(bytes.NewReader(b))
-	if err != nil {
-		log.Printf("Error Descoding body: %s", err.Error())
-		return
-	}
+	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
+	//if err != nil {
+	//	log.Printf("Error Descoding body: %s", err.Error())
+	//	return
+	//}
 
 	metric, err := s.storage.GetMetric(m)
 
