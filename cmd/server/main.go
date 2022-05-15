@@ -21,7 +21,7 @@ func main() {
 
 	r.Post("/update/", h.UpdateJSONMetric)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateMetric)
-	r.Get("/value/{metricType}/{metricName}", h.GetMetric)
+	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 
 	log.Fatal(http.ListenAndServe(":8080", r))

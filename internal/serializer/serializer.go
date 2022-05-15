@@ -2,7 +2,9 @@ package serializer
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"strconv"
 )
 
 type Metric struct {
@@ -12,15 +14,9 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-//TODO Проверить нужно или нет
-type ServerResponse struct {
-	Result string `json:"result"`
-	Error  string `json:"error"`
-}
-
 type Metrics []Metric
 
-func DecodingMetric(b io.Reader) (Metric, error) {
+func DecodingJSONMetric(b io.Reader) (Metric, error) {
 
 	var m Metric
 	err := json.NewDecoder(b).Decode(&m)
@@ -28,6 +24,28 @@ func DecodingMetric(b io.Reader) (Metric, error) {
 		return Metric{}, err
 	}
 	return m, err
+}
+
+func DecodingStringMetric(m map[string]string) (Metric, error) {
+
+	switch m["metricType"] {
+	case "gauge":
+		value, err := strconv.ParseFloat(m["metricValue"], 64)
+		if err != nil {
+			return Metric{}, err
+		}
+		m := Metric{ID: m["metricName"], MType: m["metricType"], Value: &value}
+		return m, nil
+	case "counter":
+		value, err := strconv.ParseInt(m["metricValue"], 10, 64)
+		if err != nil {
+			return Metric{}, err
+		}
+		m := Metric{ID: m["metricName"], MType: m["metricType"], Delta: &value}
+		return m, nil
+	}
+	err := fmt.Errorf("unknown metric type %s, expected (gauge|counter)", m["metricType"])
+	return Metric{}, err
 }
 
 func EncodingMetricGauge(id string, value float64) ([]byte, error) {

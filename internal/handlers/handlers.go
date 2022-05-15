@@ -22,19 +22,29 @@ func New(storage storage.Storage) *Server {
 		storage: storage,
 	}
 }
+
+func (s *Server) saveMetric(m serializer.Metric) {
+	switch strings.ToLower(m.MType) {
+	case "gauge":
+		s.storage.SetGauge(m.ID, *m.Value)
+		log.Printf("save metric %s:%d", m.ID, m.Value)
+	case "counter":
+		s.storage.SetCounter(m.ID, *m.Delta)
+		log.Printf("save metric %s:%d", m.ID, m.Delta)
+	}
+}
+
 func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	err := s.storage.Put(metricType, metricName, metricValue)
-
-	if err == nil {
-		return
+	ms := map[string]string{"metricType": metricType, "metricName": metricName, "metricValue": metricValue}
+	m, err := serializer.DecodingStringMetric(ms)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 	}
-
-	status := storageErrToStatus(err)
-	w.WriteHeader(status)
+	s.saveMetric(m)
 }
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -42,27 +52,14 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		//TODO Обработать корректноый статус
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	m, err := serializer.DecodingMetric(bytes.NewReader(b))
+	m, err := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	if err != nil {
-		//TODO Обработать корректноый статус
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	switch strings.ToLower(m.MType) {
-	case "gauge":
-		s.storage.PutGauge(m.ID, *m.Value)
-		//TODO remove debug message
-		value, _ := s.storage.Get(m.MType, m.ID)
-		log.Printf("Debug gauge: \n metric name: %s value: %s \n", m.MType, value)
+	s.saveMetric(m)
 
-	case "counter":
-		s.storage.PutCounter(m.ID, *m.Delta)
-		//TODO remove debug message
-		value, _ := s.storage.Get(m.MType, m.ID)
-		log.Printf("Debug counter: \n metric name: %s value: %s \n", m.MType, value)
-	}
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -74,13 +71,14 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error read body: %s", err.Error())
 	}
 
-	m, err := serializer.DecodingMetric(bytes.NewReader(b))
+	m, err := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	if err != nil {
 		log.Printf("Error Descoding body: %s", err.Error())
 		return
 	}
 
 	var metric serializer.Metric
+
 	switch m.MType {
 	case "gauge":
 		val, err := s.storage.GetGauge(m.ID)
@@ -113,14 +111,46 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s *Server) GetMetric(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getMetric(m serializer.Metric) (serializer.Metric, error) {
+	var metric serializer.Metric
+
+	switch m.MType {
+	case "gauge":
+		val, err := s.storage.GetGauge(m.ID)
+		if err != nil {
+			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			return serializer.Metric{}, err
+		}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
+	case "counter":
+		val, err := s.storage.GetCounter(m.ID)
+		if err != nil {
+			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			return serializer.Metric{}, err
+		}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
+	}
+	return metric, nil
+}
+
+func (s *Server) GetURLMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
-	val, err := s.storage.Get(metricType, metricName)
+	ms := map[string]string{"metricType": metricType, "metricName": metricName}
+	m, err := serializer.DecodingStringMetric(ms)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	metric, err := s.getMetric(m)
 
 	if err == nil {
-		fmt.Fprint(w, val)
+		switch m.MType {
+		case "gauge":
+			fmt.Fprint(w, metric.Value)
+		case "counter":
+			fmt.Fprint(w, metric.Delta)
+		}
 		return
 	}
 	status := storageErrToStatus(err)
