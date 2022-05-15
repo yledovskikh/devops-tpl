@@ -190,11 +190,10 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println(response)
 
-	id, err := w.Write(response)
+	_, err = w.Write(response)
 	if err != nil {
 		log.Printf("Error write client: %s", err.Error())
 	}
-	log.Printf("Response id:", id)
 
 }
 
