@@ -2,6 +2,9 @@ package storage
 
 import (
 	"errors"
+	"github.com/yledovskikh/devops-tpl/internal/serializer"
+	"log"
+	"strings"
 	"sync"
 )
 
@@ -13,6 +16,9 @@ type Storage interface {
 	GetCounter(metricName string) (int64, error)
 	SetCounter(metricName string, metricValue int64)
 	GetAllCounters() map[string]int64
+
+	SetMetric(m serializer.Metric) error
+	GetMetric(m serializer.Metric) (serializer.Metric, error)
 }
 
 type MetricStore struct {
@@ -38,6 +44,8 @@ func (s *MetricStore) SetGauge(metricName string, metricValue float64) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	s.gauges[metricName] = metricValue
+	log.Printf("save metric gauge - %s:%f", metricName, metricValue)
+
 }
 
 func (s *MetricStore) GetGauge(metricName string) (float64, error) {
@@ -68,6 +76,7 @@ func (s *MetricStore) SetCounter(metricName string, metricValue int64) {
 	} else {
 		s.counters[metricName] = metricValue
 	}
+	log.Printf("save metric counter - %s:%d", metricName, metricValue)
 
 }
 
@@ -90,3 +99,55 @@ func (s *MetricStore) GetAllCounters() map[string]int64 {
 	}
 	return m
 }
+
+func (s *MetricStore) SetMetric(m serializer.Metric) error {
+	switch strings.ToLower(m.MType) {
+	case "gauge":
+		s.SetGauge(m.ID, *m.Value)
+		return nil
+	case "counter":
+		s.SetCounter(m.ID, *m.Delta)
+		return nil
+	default:
+		return ErrNotImplemented
+	}
+}
+
+func (s *MetricStore) GetMetric(m serializer.Metric) (serializer.Metric, error) {
+
+	var metric serializer.Metric
+
+	switch m.MType {
+	case "gauge":
+		val, err := s.GetGauge(m.ID)
+		if err != nil {
+			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			return serializer.Metric{}, err
+		}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
+	case "counter":
+		val, err := s.GetCounter(m.ID)
+		if err != nil {
+			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			return serializer.Metric{}, err
+		}
+		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
+	default:
+		err := ErrNotFound
+		return serializer.Metric{}, err
+	}
+	return metric, nil
+
+}
+
+//func (s *MetricStore) SetMetric(metricType, metricName, metricValue string) {
+//	switch strings.ToLower(metricType) {
+//	case "gauge":
+//
+//		s.SetGauge(metricName, *m.Value)
+//		log.Printf("save metric %s:%d", m.ID, m.Value)
+//	case "counter":
+//		s.storage.SetCounter(m.ID, *m.Delta)
+//		log.Printf("save metric %s:%d", m.ID, m.Delta)
+//	}
+//}

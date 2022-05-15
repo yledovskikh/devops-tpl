@@ -23,28 +23,17 @@ func New(storage storage.Storage) *Server {
 	}
 }
 
-func (s *Server) saveMetric(m serializer.Metric) {
-	switch strings.ToLower(m.MType) {
-	case "gauge":
-		s.storage.SetGauge(m.ID, *m.Value)
-		log.Printf("save metric %s:%d", m.ID, m.Value)
-	case "counter":
-		s.storage.SetCounter(m.ID, *m.Delta)
-		log.Printf("save metric %s:%d", m.ID, m.Delta)
-	}
-}
-
 func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
-	ms := map[string]string{"metricType": metricType, "metricName": metricName, "metricValue": metricValue}
-	m, err := serializer.DecodingStringMetric(ms)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	//ms := map[string]string{"metricType": metricType, "metricName": metricName, "metricValue": metricValue}
+	m, status := serializer.DecodingStringMetric(metricType, metricName, metricValue)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
 	}
-	s.saveMetric(m)
+	s.storage.SetMetric(m)
 }
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -58,8 +47,9 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	s.saveMetric(m)
-
+	err = s.storage.SetMetric(m)
+	status := storageErrToStatus(err)
+	w.WriteHeader(status)
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -77,79 +67,38 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var metric serializer.Metric
+	metric, err := s.storage.GetMetric(m)
 
-	switch m.MType {
-	case "gauge":
-		val, err := s.storage.GetGauge(m.ID)
+	if err == nil {
+		response, err := json.Marshal(metric)
 		if err != nil {
-			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+			log.Println(err.Error())
+			status := http.StatusInternalServerError
+			w.WriteHeader(status)
 			return
 		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
-	case "counter":
-		val, err := s.storage.GetCounter(m.ID)
-		if err != nil {
-			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-			return
-		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
+		//log.Println(response)
 
-	}
-
-	response, err := json.Marshal(metric)
-	if err != nil {
-		log.Println(err.Error())
+		w.Write(response)
 		return
 	}
-	log.Println(response)
+	status := storageErrToStatus(err)
+	w.WriteHeader(status)
 
-	_, err = w.Write(response)
-	if err != nil {
-		log.Printf("Error write client: %s", err.Error())
-	}
-
-}
-
-func (s *Server) getMetric(m serializer.Metric) (serializer.Metric, error) {
-	var metric serializer.Metric
-
-	switch m.MType {
-	case "gauge":
-		val, err := s.storage.GetGauge(m.ID)
-		if err != nil {
-			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-			return serializer.Metric{}, err
-		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
-	case "counter":
-		val, err := s.storage.GetCounter(m.ID)
-		if err != nil {
-			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-			return serializer.Metric{}, err
-		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
-	}
-	return metric, nil
 }
 
 func (s *Server) GetURLMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
-	ms := map[string]string{"metricType": metricType, "metricName": metricName}
-	m, err := serializer.DecodingStringMetric(ms)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-	metric, err := s.getMetric(m)
-
+	m := serializer.Metric{ID: metricName, MType: metricType}
+	metric, err := s.storage.GetMetric(m)
 	if err == nil {
 		switch m.MType {
 		case "gauge":
-			fmt.Fprint(w, metric.Value)
+			fmt.Fprint(w, *metric.Value)
 		case "counter":
-			fmt.Fprint(w, metric.Delta)
+			fmt.Fprint(w, *metric.Delta)
 		}
 		return
 	}

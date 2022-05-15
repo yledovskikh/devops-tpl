@@ -2,7 +2,9 @@ package serializer
 
 import (
 	"encoding/json"
-	"fmt"
+	"net/http"
+
+	//"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io"
 	"strconv"
 )
@@ -26,28 +28,30 @@ func DecodingJSONMetric(b io.Reader) (Metric, error) {
 	return m, err
 }
 
-func DecodingStringMetric(m map[string]string) (Metric, error) {
+func DecodingStringMetric(metricType, metricName, metricValue string) (Metric, int) {
 
-	switch m["metricType"] {
+	//TODO rewrite return status error
+	switch metricType {
 	case "gauge":
-		value, err := strconv.ParseFloat(m["metricValue"], 64)
+		value, err := strconv.ParseFloat(metricValue, 64)
 		if err != nil {
-			return Metric{}, err
+			return Metric{}, http.StatusBadRequest
 		}
-		m := Metric{ID: m["metricName"], MType: m["metricType"], Value: &value}
-		return m, nil
+		m := Metric{ID: metricName, MType: metricType, Value: &value}
+		return m, http.StatusOK
 	case "counter":
-		value, err := strconv.ParseInt(m["metricValue"], 10, 64)
+		value, err := strconv.ParseInt(metricValue, 10, 64)
 		if err != nil {
-			return Metric{}, err
+			return Metric{}, http.StatusBadRequest
 		}
-		m := Metric{ID: m["metricName"], MType: m["metricType"], Delta: &value}
-		return m, nil
+		m := Metric{ID: metricName, MType: metricType, Delta: &value}
+		return m, http.StatusOK
 	}
-	err := fmt.Errorf("unknown metric type %s, expected (gauge|counter)", m["metricType"])
-	return Metric{}, err
+	//err := fmt.Errorf("unknown metric type %s, expected (gauge|counter)", metricType)
+	return Metric{}, http.StatusNotImplemented
 }
 
+////CHECK Methods
 func EncodingMetricGauge(id string, value float64) ([]byte, error) {
 	return json.Marshal(Metric{ID: id, MType: "gauge", Value: &value})
 }
