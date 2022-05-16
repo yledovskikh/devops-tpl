@@ -60,8 +60,9 @@ func (a *Agent) collectMetrics() {
 	a.storage.SetCounter("PollCount", 1)
 	log.Println("INFO collect metrics")
 }
-func send2server(url string, body []byte) error {
+func send2server(endpoint string, body []byte) error {
 
+	url := endpoint + "/update/"
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
@@ -83,14 +84,14 @@ func send2server(url string, body []byte) error {
 	return nil
 }
 
-func (a *Agent) postMetrics(updateMetricURL string) {
+func (a *Agent) postMetrics(endpoint string) {
 
 	for mName, mValue := range a.storage.GetAllGauges() {
 		body, err := serializer.EncodingMetricGauge(mName, mValue)
 		if err != nil {
 			log.Println(err)
 		}
-		if err = send2server(updateMetricURL, body); err != nil {
+		if err = send2server(endpoint, body); err != nil {
 			log.Println(err.Error())
 			continue
 		}
@@ -103,14 +104,14 @@ func (a *Agent) postMetrics(updateMetricURL string) {
 			log.Println(err.Error())
 		}
 
-		if err = send2server(updateMetricURL, body); err != nil {
+		if err = send2server(endpoint, body); err != nil {
 			log.Println(err)
 			continue
 		}
 	}
 }
 
-func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, updateMetricURL string) {
+func (a *Agent) Exec(endpoint string, pollInterval, reportInterval time.Duration) {
 	pollIntervalTicker := time.NewTicker(pollInterval)
 	reportIntervalTicker := time.NewTicker(reportInterval)
 	for {
@@ -120,7 +121,7 @@ func (a *Agent) Exec(pollInterval time.Duration, reportInterval time.Duration, u
 			a.collectMetrics()
 			//log.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 		case <-reportIntervalTicker.C:
-			a.postMetrics(updateMetricURL)
+			a.postMetrics(endpoint)
 		}
 	}
 }

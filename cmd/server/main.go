@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/yledovskikh/devops-tpl/internal/config"
 	"github.com/yledovskikh/devops-tpl/internal/handlers"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"log"
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-
+	endpoint := config.ServerConfig()
 	r := chi.NewRouter()
 	s := storage.NewMetricStore()
 	h := handlers.New(s)
@@ -24,5 +25,5 @@ func main() {
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(endpoint, r))
 }
