@@ -19,6 +19,8 @@ type Storage interface {
 
 	SetMetric(m serializer.Metric) error
 	GetMetric(m serializer.Metric) (serializer.Metric, error)
+	GetMetricsSerialize() serializer.Metrics
+	SetMetricsSerialize(metrics serializer.Metrics)
 }
 
 type MetricStore struct {
@@ -72,17 +74,14 @@ func (s *MetricStore) SetCounter(metricName string, metricValue int64) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	s.counters[metricName] += metricValue
-	//if _, ok := s.counters[metricName]; ok {
-	//} else {
-	//	s.counters[metricName] = metricValue
-	//}
+
 	log.Printf("save metric counter - %s:%d", metricName, metricValue)
 
 }
 
 func (s *MetricStore) GetCounter(metricName string) (int64, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutex.RLock()
+	defer mutex.RUnlock()
 
 	if val, ok := s.counters[metricName]; ok {
 		return val, nil
@@ -100,6 +99,31 @@ func (s *MetricStore) GetAllCounters() map[string]int64 {
 	return m
 }
 
+func (s *MetricStore) GetMetricsSerialize() serializer.Metrics {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	m := make(serializer.Metrics, 0)
+	for mName, mVal := range s.gauges {
+		m = append(m, serializer.Metric1{ID: mName, MType: "gauge", Value: mVal})
+	}
+	for mName, mVal := range s.counters {
+		m = append(m, serializer.Metric1{ID: mName, MType: "counter", Delta: mVal})
+	}
+	return m
+}
+
+func (s *MetricStore) SetMetricsSerialize(metrics serializer.Metrics) {
+	for _, m := range metrics {
+		switch strings.ToLower(m.MType) {
+		case "gauge":
+			s.SetGauge(m.ID, m.Value)
+		case "counter":
+			s.SetCounter(m.ID, m.Delta)
+		}
+	}
+}
+
 func (s *MetricStore) SetMetric(m serializer.Metric) error {
 	switch strings.ToLower(m.MType) {
 	case "gauge":
@@ -115,7 +139,6 @@ func (s *MetricStore) SetMetric(m serializer.Metric) error {
 }
 
 func (s *MetricStore) GetMetric(m serializer.Metric) (serializer.Metric, error) {
-
 	var metric serializer.Metric
 
 	switch m.MType {

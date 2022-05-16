@@ -6,45 +6,56 @@ import (
 	"time"
 )
 
-const pollIntervalDefault = 2 * time.Second
-const reportIntervalDefault = 10 * time.Second
-const serverAddresstDefault = "127.0.0.1:8080"
-const schemaDefault = "http://"
-
-type Config struct {
-	ServerAddress  string        `env:"ADDRESS"`
-	PollInterval   time.Duration `env:"REPORT_INTERVAL"`
-	ReportInterval time.Duration `env:"POLL_INTERVAL"`
+type AgentConfig struct {
+	ServerAddress  string `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+	EndPoint       string
+	PollInterval   time.Duration `env:"REPORT_INTERVAL" envDefault:"2s"`
+	ReportInterval time.Duration `env:"POLL_INTERVAL" envDefault:"10s"`
 }
 
-func AgentConfig() (string, time.Duration, time.Duration) {
-	var cfg Config
+type ServerConfig struct {
+	ServerAddress string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
+	StoreFile     string        `env:"STORE_FILE" envDefault:"/tmp/devops-metrics-db.json"`
+	Restore       bool          `env:"RESTORE" envDefault:"true"`
+}
+
+func GetAgentConfig() AgentConfig {
+	var cfg AgentConfig
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	validate(&cfg)
-	return schemaDefault + cfg.ServerAddress, cfg.PollInterval, cfg.ReportInterval
+	//validateAgent(&cfg)
+	cfg.EndPoint = "http://" + cfg.ServerAddress
+	//return cfg.EndPoint, cfg.PollInterval, cfg.ReportInterval
+	return cfg
 }
 
-func ServerConfig() string {
-	var cfg Config
+func GetServerConfig() ServerConfig {
+	var cfg ServerConfig
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	validate(&cfg)
-	return cfg.ServerAddress
+	//validateServer(&cfg)
+	return cfg
 }
 
-func validate(cfg *Config) {
-	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = serverAddresstDefault
-	}
-	if cfg.PollInterval == 0 {
-		cfg.PollInterval = pollIntervalDefault
-	}
-	if cfg.ReportInterval == 0 {
-		cfg.ReportInterval = reportIntervalDefault
-	}
-}
+//func validateAgent(cfg *AgentConfig) {
+//	if cfg.ServerAddress == "" {
+//		cfg.ServerAddress = serverAddresstDefault
+//	}
+//	if cfg.PollInterval == 0 {
+//		cfg.PollInterval = pollIntervalDefault
+//	}
+//	if cfg.ReportInterval == 0 {
+//		cfg.ReportInterval = reportIntervalDefault
+//	}
+//}
+//
+//func validateServer(cfg *ServerConfig) {
+//	if cfg.ServerAddress == "" {
+//		cfg.ServerAddress = serverAddresstDefault
+//	}
+//}

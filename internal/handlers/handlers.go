@@ -64,21 +64,6 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResp)
 }
 
-//func sendResponse(w http.ResponseWriter, code int, resp serializer.ServerResponse, compress bool) {
-//	responseBody, err := serializer.EncodeServerResponse(resp, compress)
-//	if err != nil {
-//		w.WriteHeader(http.StatusInternalServerError)
-//		w.Write([]byte(fmt.Sprintf("failed to encode server response: %s", err.Error())))
-//		return
-//	}
-//
-//	if compress {
-//		w.Header().Set("Content-Encoding", "gzip")
-//	}
-//	w.WriteHeader(code)
-//	w.Write(responseBody)
-//}
-
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
