@@ -2,10 +2,11 @@ package storage
 
 import (
 	"errors"
-	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/yledovskikh/devops-tpl/internal/serializer"
 )
 
 type Storage interface {

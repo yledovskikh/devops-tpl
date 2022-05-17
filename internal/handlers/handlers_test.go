@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestServer_GetURLMetricMetric(t *testing.T) {

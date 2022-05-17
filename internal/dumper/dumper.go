@@ -3,12 +3,13 @@ package dumper
 import (
 	"context"
 	"encoding/json"
-	"github.com/yledovskikh/devops-tpl/internal/config"
-	"github.com/yledovskikh/devops-tpl/internal/serializer"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io/ioutil"
 	"log"
 	"time"
+
+	"github.com/yledovskikh/devops-tpl/internal/config"
+	"github.com/yledovskikh/devops-tpl/internal/serializer"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 func Exp(s storage.Storage, fileName string) {

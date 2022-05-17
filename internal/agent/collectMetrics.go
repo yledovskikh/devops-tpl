@@ -2,13 +2,14 @@ package agent
 
 import (
 	"bytes"
-	"github.com/yledovskikh/devops-tpl/internal/serializer"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/yledovskikh/devops-tpl/internal/serializer"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 type Agent struct {

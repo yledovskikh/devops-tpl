@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/yledovskikh/devops-tpl/internal/agent"
-	"github.com/yledovskikh/devops-tpl/internal/config"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/yledovskikh/devops-tpl/internal/agent"
+	"github.com/yledovskikh/devops-tpl/internal/config"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 func main() {

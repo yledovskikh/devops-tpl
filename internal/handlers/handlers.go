@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/yledovskikh/devops-tpl/internal/serializer"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/yledovskikh/devops-tpl/internal/serializer"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 type Server struct {

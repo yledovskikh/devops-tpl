@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/yledovskikh/devops-tpl/internal/config"
-	"github.com/yledovskikh/devops-tpl/internal/dumper"
-	"github.com/yledovskikh/devops-tpl/internal/handlers"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/yledovskikh/devops-tpl/internal/config"
+	"github.com/yledovskikh/devops-tpl/internal/dumper"
+	"github.com/yledovskikh/devops-tpl/internal/handlers"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 func main() {
