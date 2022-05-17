@@ -37,7 +37,7 @@ func main() {
 	go dumper.Exec(ctx, s, serverConfig)
 
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    serverConfig.ServerAddress,
 		Handler: r,
 	}
 	done := make(chan os.Signal, 1)
