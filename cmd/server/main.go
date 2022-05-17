@@ -27,7 +27,8 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 	r.Get("/", func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte("chi"))
+		rw.Header().Set("Content-Type", "text/html")
+		rw.Write([]byte("Metrics Collection Server"))
 	})
 	r.Post("/update/", h.UpdateJSONMetric)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateMetric)
