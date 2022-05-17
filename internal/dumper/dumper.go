@@ -31,9 +31,10 @@ func Exec(ctx context.Context, storage storage.Storage, serverConfig config.Serv
 	if serverConfig.Restore {
 		imp(storage, serverConfig.StoreFile)
 	}
-
-	serverConfig.StoreInterval = 5 * time.Second
 	dumpInt := time.NewTicker(serverConfig.StoreInterval)
+	log.Println("INFO dump file")
+	Exp(storage, serverConfig.StoreFile)
+
 	for {
 		select {
 		case <-ctx.Done():

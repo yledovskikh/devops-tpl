@@ -13,10 +13,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	//ctx, cancel := context.WithCancel(context.Background())
 	r := chi.NewRouter()
 	s := storage.NewMetricStore()
 	h := handlers.New(s)
@@ -30,22 +31,36 @@ func main() {
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	serverConfig := config.GetServerConfig()
 	go dumper.Exec(ctx, s, serverConfig)
 
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	//log.Fatal(http.ListenAndServe(serverConfig.ServerAddress, r))
-
 	srv := &http.Server{
-		Addr:    serverConfig.ServerAddress,
+		Addr:    ":8080",
 		Handler: r,
 	}
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	go srv.ListenAndServe()
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+	log.Print("Server Started")
 
-	exitCode := <-signalChannel
-	cancel()
-	log.Println(exitCode)
+	<-done
+	log.Print("Server Stopped")
+
+	defer func() {
+		dumper.Exp(s, serverConfig.StoreFile) // extra handling here
+		cancel()
+	}()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server Shutdown Failed:%+v", err)
+	}
+	log.Print("Server Exited Properly")
 
 }

@@ -93,5 +93,6 @@ func GetServerConfig() ServerConfig {
 	if err != nil {
 		log.Fatal(err)
 	}
+	validateServerConfig(&cfg)
 	return cfg
 }
