@@ -1,17 +1,18 @@
 package config
 
 import (
+	"flag"
 	"github.com/caarlos0/env/v6"
 	"log"
+	"os"
 	"strconv"
 	"time"
 )
 
 const (
-	serverAddressDefault   = "127.0.0.1:8080"
-	pollIntervalDefault    = 2 * time.Second
-	reportIntervalDefault  = 10 * time.Second
-	serverSSLEnableDefault = false
+	serverAddressDefault  = "127.0.0.1:8080"
+	pollIntervalDefault   = 2 * time.Second
+	reportIntervalDefault = 10 * time.Second
 
 	storeIntervalDefault = 300 * time.Second
 	storeFileDefault     = "/tmp/devops-metrics-db.json"
@@ -29,32 +30,30 @@ type ServerConfig struct {
 	ServerAddress string        `env:"ADDRESS"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
-	RestoreEnv    string        `env:"RESTORE"`
 	Restore       bool
 }
 
-//func init() {
-//
-//}
+var pollInterval time.Duration
+var reportInterval time.Duration
+var serverAddress string
 
 func validateAgentConfig(cfg *AgentConfig) {
 	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = serverAddressDefault
+		cfg.ServerAddress = serverAddress
 	}
 	if cfg.PollInterval == 0 {
-		cfg.PollInterval = pollIntervalDefault
+		cfg.PollInterval = pollInterval
 	}
 	if cfg.ReportInterval == 0 {
-		cfg.ReportInterval = reportIntervalDefault
+		cfg.ReportInterval = reportInterval
 	}
-	if serverSSLEnableDefault {
-		cfg.EndPoint = "https://" + cfg.ServerAddress
-	} else {
-		cfg.EndPoint = "http://" + cfg.ServerAddress
-	}
+
+	cfg.EndPoint = "https://" + cfg.ServerAddress
+
 }
 
 func validateServerConfig(cfg *ServerConfig) {
+	restoreEnv := os.Getenv("RESTORE")
 	if cfg.ServerAddress == "" {
 		cfg.ServerAddress = serverAddressDefault
 	}
@@ -65,11 +64,11 @@ func validateServerConfig(cfg *ServerConfig) {
 		cfg.StoreInterval = storeIntervalDefault
 	}
 
-	if cfg.RestoreEnv == "" {
+	if restoreEnv == "" {
 		cfg.Restore = restoreDefault
 	} else {
 		var err error
-		cfg.Restore, err = strconv.ParseBool(cfg.RestoreEnv)
+		cfg.Restore, err = strconv.ParseBool(restoreEnv)
 		if err != nil {
 			cfg.Restore = restoreDefault
 		}
@@ -79,7 +78,18 @@ func validateServerConfig(cfg *ServerConfig) {
 
 func GetAgentConfig() AgentConfig {
 	var cfg AgentConfig
+
+	flag.StringVar(&serverAddress, "a", serverAddressDefault, "server address")
+	flag.DurationVar(&pollInterval, "p", pollIntervalDefault, "poll metrics interval")
+	flag.DurationVar(&reportInterval, "r", reportIntervalDefault, "report metric interval")
+
+	flag.Parse()
 	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
