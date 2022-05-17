@@ -35,7 +35,10 @@ type ServerConfig struct {
 
 var pollInterval time.Duration
 var reportInterval time.Duration
+var storeInterval time.Duration
 var serverAddress string
+var storeFile string
+var restoreServer bool
 
 func validateAgentConfig(cfg *AgentConfig) {
 	if cfg.ServerAddress == "" {
@@ -55,17 +58,17 @@ func validateAgentConfig(cfg *AgentConfig) {
 func validateServerConfig(cfg *ServerConfig) {
 	restoreEnv := os.Getenv("RESTORE")
 	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = serverAddressDefault
+		cfg.ServerAddress = serverAddress
 	}
 	if cfg.StoreFile == "" {
-		cfg.StoreFile = storeFileDefault
+		cfg.StoreFile = storeFile
 	}
 	if cfg.StoreInterval == 0 {
-		cfg.StoreInterval = storeIntervalDefault
+		cfg.StoreInterval = storeInterval
 	}
 
 	if restoreEnv == "" {
-		cfg.Restore = restoreDefault
+		cfg.Restore = restoreServer
 	} else {
 		var err error
 		cfg.Restore, err = strconv.ParseBool(restoreEnv)
@@ -89,20 +92,24 @@ func GetAgentConfig() AgentConfig {
 		log.Fatal(err)
 	}
 
-	err = env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
 	validateAgentConfig(&cfg)
 	return cfg
 }
 
 func GetServerConfig() ServerConfig {
 	var cfg ServerConfig
+
+	flag.StringVar(&serverAddress, "a", serverAddressDefault, "server address")
+	flag.DurationVar(&storeInterval, "i", storeIntervalDefault, "dump metrics to file interval")
+	flag.StringVar(&storeFile, "f", storeFileDefault, "dump file name")
+	flag.BoolVar(&restoreServer, "r", restoreDefault, "restore metrics from file")
+
+	flag.Parse()
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	validateServerConfig(&cfg)
 	return cfg
 }
