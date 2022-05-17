@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/caarlos0/env/v6"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -11,6 +12,10 @@ const (
 	pollIntervalDefault    = 2 * time.Second
 	reportIntervalDefault  = 10 * time.Second
 	serverSSLEnableDefault = false
+
+	storeIntervalDefault = 300 * time.Second
+	storeFileDefault     = "/tmp/devops-metrics-db.json"
+	restoreDefault       = true
 )
 
 type AgentConfig struct {
@@ -21,10 +26,11 @@ type AgentConfig struct {
 }
 
 type ServerConfig struct {
-	ServerAddress string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	StoreInterval time.Duration `env:"STORE_INTERVAL" envDefault:"300s"`
-	StoreFile     string        `env:"STORE_FILE" envDefault:"/tmp/devops-metrics-db.json"`
-	Restore       bool          `env:"RESTORE" envDefault:"true"`
+	ServerAddress string        `env:"ADDRESS"`
+	StoreInterval time.Duration `env:"STORE_INTERVAL"`
+	StoreFile     string        `env:"STORE_FILE"`
+	RestoreEnv    string        `env:"RESTORE"`
+	Restore       bool
 }
 
 //func init() {
@@ -45,6 +51,28 @@ func validateAgentConfig(cfg *AgentConfig) {
 		cfg.EndPoint = "https://" + cfg.ServerAddress
 	} else {
 		cfg.EndPoint = "http://" + cfg.ServerAddress
+	}
+}
+
+func validateServerConfig(cfg *ServerConfig) {
+	if cfg.ServerAddress == "" {
+		cfg.ServerAddress = serverAddressDefault
+	}
+	if cfg.StoreFile == "" {
+		cfg.StoreFile = storeFileDefault
+	}
+	if cfg.StoreInterval == 0 {
+		cfg.StoreInterval = storeIntervalDefault
+	}
+
+	if cfg.RestoreEnv == "" {
+		cfg.Restore = restoreDefault
+	} else {
+		var err error
+		cfg.Restore, err = strconv.ParseBool(cfg.RestoreEnv)
+		if err != nil {
+			cfg.Restore = restoreDefault
+		}
 	}
 
 }
