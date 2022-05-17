@@ -51,7 +51,7 @@ func validateAgentConfig(cfg *AgentConfig) {
 		cfg.ReportInterval = reportInterval
 	}
 
-	cfg.EndPoint = "https://" + cfg.ServerAddress
+	cfg.EndPoint = "http://" + cfg.ServerAddress
 
 }
 
