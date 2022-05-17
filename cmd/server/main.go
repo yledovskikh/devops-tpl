@@ -26,7 +26,9 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
-
+	r.Get("/", func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write([]byte("chi"))
+	})
 	r.Post("/update/", h.UpdateJSONMetric)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
