@@ -108,7 +108,7 @@ func GetServerConfig() ServerConfig {
 	flag.Parse()
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	validateServerConfig(&cfg)
