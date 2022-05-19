@@ -32,7 +32,7 @@ func main() {
 		rw.Write([]byte("Metrics Collection Server"))
 	})
 	r.Post("/update/", h.UpdateJSONMetric)
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateMetric)
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateURLMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 

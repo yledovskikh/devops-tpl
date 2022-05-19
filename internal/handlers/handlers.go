@@ -3,10 +3,12 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -24,95 +26,151 @@ func New(storage storage.Storage) *Server {
 	}
 }
 
-func (s *Server) UpdateMetric(w http.ResponseWriter, r *http.Request) {
+func (s *Server) setStoreJSONMetric(r *http.Request) error {
 
-	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
-	metricName := chi.URLParam(r, "metricName")
-	metricValue := chi.URLParam(r, "metricValue")
-	//ms := map[string]string{"metricType": metricType, "metricName": metricName, "metricValue": metricValue}
-	m := serializer.DecodingStringMetric(metricType, metricName, metricValue)
-	err := s.storage.SetMetric(m)
+	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		status := storageErrToStatus(err)
-		w.WriteHeader(status)
+		err = errors.New("Error function setStoreJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
+		return err
 	}
+	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
+	switch strings.ToLower(m.MType) {
+	case "gauge":
+		s.storage.SetGauge(m.ID, *m.Value)
+		return nil
+	case "counter":
+		s.storage.SetCounter(m.ID, *m.Delta)
+		return nil
+	}
+	return storage.ErrNotImplemented
 }
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	b, err := ioutil.ReadAll(r.Body)
+	err := s.setStoreJSONMetric(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	var status int
+	var resp []byte
 	if err != nil {
-		log.Println("Error function UpdateJSONMetric ioutil.ReadAll(r.Body)")
+		status = storageErrToStatus(err)
+		resp, err = serializer.EncodingResponse(err.Error())
+	} else {
+		status = http.StatusOK
+		msg := "Metric saved"
+		resp, err = serializer.EncodingResponse(msg)
+	}
+	if err != nil {
+		log.Println("Error function UpdateJSONMetric - serializer.EncodingResponse - ", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(status)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
+	}
+}
+
+func (s *Server) getStorageJSONMetric(r *http.Request) ([]byte, error) {
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err = errors.New("Error function getStorageJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
+		return nil, err
+	}
+
 	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
-	err = s.storage.SetMetric(m)
 
-	if err != nil {
-		status := storageErrToStatus(err)
-		w.WriteHeader(status)
+	switch strings.ToLower(m.MType) {
+	case "gauge":
+		*m.Value, err = s.storage.GetGauge(m.ID)
+	case "counter":
+		*m.Delta, err = s.storage.GetCounter(m.ID)
+	default:
+		return nil, storage.ErrNotImplemented
 	}
+	response, err := json.Marshal(m)
+	if err != nil {
+		log.Println(err.Error())
+		err = errors.New("Error function getStorageJSONMetric - json.Marshal(m) - " + err.Error())
+		return nil, err
+	}
+	return response, err
 
-	//w.WriteHeader(http.StatusCreated)
-	w.Header().Set("Content-Type", "application/json")
-	resp := make(map[string]string)
-	resp["message"] = "Status Created"
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Printf("Error happened in JSON marshal. Err: %s", err.Error())
-	}
-	w.Write(jsonResp)
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	resp, err := s.getStorageJSONMetric(r)
+	status := http.StatusOK
 
-	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Printf("Error read body: %s", err.Error())
+		status = storageErrToStatus(err)
+		resp, err = serializer.EncodingResponse(err.Error())
 	}
 
-	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
-	//if err != nil {
-	//	log.Printf("Error Descoding body: %s", err.Error())
-	//	return
-	//}
-
-	metric, err := s.storage.GetMetric(m)
-
-	if err == nil {
-		response, err := json.Marshal(metric)
-		if err != nil {
-			log.Println(err.Error())
-			status := http.StatusInternalServerError
-			w.WriteHeader(status)
-			return
-		}
-		//log.Println(response)
-
-		w.Write(response)
-		return
-	}
-	status := storageErrToStatus(err)
 	w.WriteHeader(status)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
+	}
 
+}
+
+func (s *Server) saveStringMetric(metricType, metricName, metricValue string) error {
+
+	switch metricType {
+	case "gauge":
+		value, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			return storage.ErrBadRequest
+		}
+		s.storage.SetGauge(metricName, value)
+		return nil
+	case "counter":
+		value, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			return storage.ErrBadRequest
+		}
+		s.storage.SetCounter(metricName, value)
+		return nil
+	}
+	return storage.ErrNotImplemented
+}
+
+func (s *Server) getStringMetric(metricType, metricName string) (string, error) {
+
+	switch metricType {
+	case "gauge":
+		value, err := s.storage.GetGauge(metricName)
+		return fmt.Sprintf("%f", value), err
+	case "counter":
+		value, err := s.storage.GetCounter(metricName)
+		return strconv.Itoa(int(value)), err
+	}
+	return "", storage.ErrNotFound
+}
+
+func (s *Server) UpdateURLMetric(w http.ResponseWriter, r *http.Request) {
+
+	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
+	err := s.saveStringMetric(metricType, metricName, metricValue)
+	if err != nil {
+		status := storageErrToStatus(err)
+		w.WriteHeader(status)
+	}
 }
 
 func (s *Server) GetURLMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricType := strings.ToLower(chi.URLParam(r, "metricType"))
 	metricName := chi.URLParam(r, "metricName")
-	m := serializer.Metric{ID: metricName, MType: metricType}
-	metric, err := s.storage.GetMetric(m)
+
+	metricValue, err := s.getStringMetric(metricType, metricName)
 	if err == nil {
-		switch m.MType {
-		case "gauge":
-			fmt.Fprint(w, *metric.Value)
-		case "counter":
-			fmt.Fprint(w, *metric.Delta)
-		}
+		fmt.Fprint(w, metricValue)
 		return
 	}
 	status := storageErrToStatus(err)

@@ -3,10 +3,7 @@ package storage
 import (
 	"errors"
 	"log"
-	"strings"
 	"sync"
-
-	"github.com/yledovskikh/devops-tpl/internal/serializer"
 )
 
 type Storage interface {
@@ -18,10 +15,10 @@ type Storage interface {
 	SetCounter(metricName string, metricValue int64)
 	GetAllCounters() map[string]int64
 
-	SetMetric(m serializer.Metric) error
-	GetMetric(m serializer.Metric) (serializer.Metric, error)
-	GetMetricsSerialize() serializer.Metrics
-	SetMetricsSerialize(metrics serializer.Metrics)
+	//SetMetric(m serializer.Metric) error
+	//GetMetric(m serializer.Metric) (serializer.Metric, error)
+	//GetMetricsSerialize() serializer.Metrics
+	//SetMetricsSerialize(metrics serializer.Metrics)
 }
 
 type MetricStore struct {
@@ -100,70 +97,70 @@ func (s *MetricStore) GetAllCounters() map[string]int64 {
 	return m
 }
 
-func (s *MetricStore) GetMetricsSerialize() serializer.Metrics {
-	mutex.RLock()
-	defer mutex.RUnlock()
-
-	m := make(serializer.Metrics, 0)
-	for mName, mVal := range s.gauges {
-		m = append(m, serializer.Metric1{ID: mName, MType: "gauge", Value: mVal})
-	}
-	for mName, mVal := range s.counters {
-		m = append(m, serializer.Metric1{ID: mName, MType: "counter", Delta: mVal})
-	}
-	return m
-}
-
-func (s *MetricStore) SetMetricsSerialize(metrics serializer.Metrics) {
-	for _, m := range metrics {
-		switch strings.ToLower(m.MType) {
-		case "gauge":
-			s.SetGauge(m.ID, m.Value)
-		case "counter":
-			s.SetCounter(m.ID, m.Delta)
-		}
-	}
-}
-
-func (s *MetricStore) SetMetric(m serializer.Metric) error {
-	switch strings.ToLower(m.MType) {
-	case "gauge":
-		s.SetGauge(m.ID, *m.Value)
-		return nil
-	case "counter":
-		s.SetCounter(m.ID, *m.Delta)
-		return nil
-	case "notimplemented":
-		return ErrBadRequest
-	}
-	return ErrNotImplemented
-}
-
-func (s *MetricStore) GetMetric(m serializer.Metric) (serializer.Metric, error) {
-	var metric serializer.Metric
-
-	switch m.MType {
-	case "gauge":
-		val, err := s.GetGauge(m.ID)
-		if err != nil {
-			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-			return serializer.Metric{}, err
-		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
-	case "counter":
-		val, err := s.GetCounter(m.ID)
-		if err != nil {
-			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
-			return serializer.Metric{}, err
-		}
-		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
-	default:
-		err := ErrNotFound
-		return serializer.Metric{}, err
-	}
-	return metric, nil
-
-}
+//func (s *MetricStore) GetMetricsSerialize() serializer.Metrics {
+//	mutex.RLock()
+//	defer mutex.RUnlock()
+//
+//	m := make(serializer.Metrics, 0)
+//	for mName, mVal := range s.gauges {
+//		m = append(m, serializer.Metric1{ID: mName, MType: "gauge", Value: mVal})
+//	}
+//	for mName, mVal := range s.counters {
+//		m = append(m, serializer.Metric1{ID: mName, MType: "counter", Delta: mVal})
+//	}
+//	return m
+//}
+//
+//func (s *MetricStore) SetMetricsSerialize(metrics serializer.Metrics) {
+//	for _, m := range metrics {
+//		switch strings.ToLower(m.MType) {
+//		case "gauge":
+//			s.SetGauge(m.ID, m.Value)
+//		case "counter":
+//			s.SetCounter(m.ID, m.Delta)
+//		}
+//	}
+//}
+//
+//func (s *MetricStore) SetMetric(m serializer.Metric) error {
+//	switch strings.ToLower(m.MType) {
+//	case "gauge":
+//		s.SetGauge(m.ID, *m.Value)
+//		return nil
+//	case "counter":
+//		s.SetCounter(m.ID, *m.Delta)
+//		return nil
+//	case "notimplemented":
+//		return ErrBadRequest
+//	}
+//	return ErrNotImplemented
+//}
+//
+//func (s *MetricStore) GetMetric(m serializer.Metric) (serializer.Metric, error) {
+//	var metric serializer.Metric
+//
+//	switch m.MType {
+//	case "gauge":
+//		val, err := s.GetGauge(m.ID)
+//		if err != nil {
+//			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+//			return serializer.Metric{}, err
+//		}
+//		metric = serializer.Metric{ID: m.ID, MType: m.MType, Value: &val}
+//	case "counter":
+//		val, err := s.GetCounter(m.ID)
+//		if err != nil {
+//			log.Printf("Error get metrics: %s, %s, %s", m.MType, m.ID, err.Error())
+//			return serializer.Metric{}, err
+//		}
+//		metric = serializer.Metric{ID: m.ID, MType: m.MType, Delta: &val}
+//	default:
+//		err := ErrNotFound
+//		return serializer.Metric{}, err
+//	}
+//	return metric, nil
+//
+//}
 
 //func (s *MetricStore) SetMetric(metricType, metricName, metricValue string) {
 //	switch strings.ToLower(metricType) {

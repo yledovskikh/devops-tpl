@@ -6,7 +6,6 @@ import (
 
 	//"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io"
-	"strconv"
 )
 
 type Metric struct {
@@ -16,14 +15,19 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-type Metric1 struct {
-	ID    string  `json:"id"`              // имя метрики
-	MType string  `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-}
+//type JsonResponse struct {
+//	Delta string   `json:"correct,omitempty"` // значение метрики в случае передачи counter
+//	Value string `json:"error,omitempty"` // значение метрики в случае передачи gauge
+//}
 
-type Metrics []Metric1
+//type Metric1 struct {
+//	ID    string  `json:"id"`              // имя метрики
+//	MType string  `json:"type"`            // параметр, принимающий значение gauge или counter
+//	Delta int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+//	Value float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+//}
+
+//type Metrics []Metric1
 
 func DecodingJSONMetric(b io.Reader) Metric {
 
@@ -36,28 +40,6 @@ func DecodingJSONMetric(b io.Reader) Metric {
 	return m
 }
 
-func DecodingStringMetric(metricType, metricName, metricValue string) Metric {
-
-	switch metricType {
-	case "gauge":
-		value, err := strconv.ParseFloat(metricValue, 64)
-		if err != nil {
-			return Metric{MType: "notimplemented"}
-		}
-		m := Metric{ID: metricName, MType: metricType, Value: &value}
-		return m
-	case "counter":
-		value, err := strconv.ParseInt(metricValue, 10, 64)
-		if err != nil {
-			return Metric{MType: "notimplemented"}
-		}
-		m := Metric{ID: metricName, MType: metricType, Delta: &value}
-		return m
-	}
-	//err := fmt.Errorf("unknown metric type %s, expected (gauge|counter)", metricType)
-	return Metric{}
-}
-
 func EncodingMetricGauge(id string, value float64) ([]byte, error) {
 	return json.Marshal(Metric{ID: id, MType: "gauge", Value: &value})
 }
@@ -65,6 +47,36 @@ func EncodingMetricGauge(id string, value float64) ([]byte, error) {
 func EncodingMetricCounter(id string, value int64) ([]byte, error) {
 	return json.Marshal(Metric{ID: id, MType: "counter", Delta: &value})
 }
+
+func EncodingResponse(msg string) ([]byte, error) {
+	message := make(map[string]string)
+	message["message"] = msg
+	resp, err := json.Marshal(message)
+	return resp, err
+}
+
+//
+//func DecodingStringMetric(metricType, metricName, metricValue string) Metric {
+//
+//	switch metricType {
+//	case "gauge":
+//		value, err := strconv.ParseFloat(metricValue, 64)
+//		if err != nil {
+//			return Metric{MType: "notimplemented"}
+//		}
+//		m := Metric{ID: metricName, MType: metricType, Value: &value}
+//		return m
+//	case "counter":
+//		value, err := strconv.ParseInt(metricValue, 10, 64)
+//		if err != nil {
+//			return Metric{MType: "notimplemented"}
+//		}
+//		m := Metric{ID: metricName, MType: metricType, Delta: &value}
+//		return m
+//	}
+//	//err := fmt.Errorf("unknown metric type %s, expected (gauge|counter)", metricType)
+//	return Metric{}
+//}
 
 //func EncodeServerResponse(resp ServerResponse) ([]byte, error) {
 //	j, err := json.Marshal(resp)
