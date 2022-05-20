@@ -44,7 +44,7 @@ func (s *MetricStore) SetGauge(metricName string, metricValue float64) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	s.gauges[metricName] = metricValue
-	log.Printf("save metric gauge - %s:%f", metricName, metricValue)
+	log.Printf("save metric gauge - %s:%v", metricName, metricValue)
 
 }
 

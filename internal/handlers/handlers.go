@@ -154,7 +154,7 @@ func (s *Server) getStringMetric(metricType, metricName string) (string, error) 
 	switch metricType {
 	case "gauge":
 		value, err := s.storage.GetGauge(metricName)
-		return fmt.Sprintf("%f", value), err
+		return fmt.Sprintf("%v", value), err
 	case "counter":
 		value, err := s.storage.GetCounter(metricName)
 		return strconv.Itoa(int(value)), err
