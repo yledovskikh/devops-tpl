@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -36,17 +36,23 @@ func main() {
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	serverConfig := config.GetServerConfig()
-	go dumper.Exec(ctx, s, serverConfig)
+	if serverConfig.Restore {
+		dumper.Imp(s, serverConfig.StoreFile)
+	}
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go dumper.Exec(&wg, ctx, s, serverConfig)
 
 	srv := &http.Server{
 		Addr:    serverConfig.ServerAddress,
 		Handler: r,
 	}
 	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(done, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -58,14 +64,16 @@ func main() {
 	<-done
 	log.Print("Server Stopped")
 
-	defer func() {
-		dumper.Exp(s, serverConfig.StoreFile) // extra handling here
-		cancel()
-	}()
-
+	//defer func() {
+	//	//dumper.Exp(s, serverConfig.StoreFile) // extra handling here
+	//
+	//}()
+	//
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server Shutdown Failed:%+v", err)
 	}
+	cancel()
+	wg.Wait()
 	log.Print("Server Exited Properly")
 
 }

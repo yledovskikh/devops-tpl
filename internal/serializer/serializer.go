@@ -3,7 +3,6 @@ package serializer
 import (
 	"encoding/json"
 	"log"
-
 	//"github.com/yledovskikh/devops-tpl/internal/storage"
 	"io"
 )
@@ -38,6 +37,14 @@ func DecodingJSONMetric(b io.Reader) Metric {
 		return Metric{}
 	}
 	return m
+}
+
+func DecodingGauge(metricName string, metricValue float64) Metric {
+	return Metric{ID: metricName, MType: "gauge", Value: &metricValue}
+}
+
+func DecodingCounter(metricName string, metricValue int64) Metric {
+	return Metric{ID: metricName, MType: "counter", Delta: &metricValue}
 }
 
 func EncodingMetricGauge(id string, value float64) ([]byte, error) {

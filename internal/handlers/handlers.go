@@ -26,20 +26,14 @@ func New(storage storage.Storage) *Server {
 	}
 }
 
-func (s *Server) setStoreJSONMetric(r *http.Request) error {
+func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		err = errors.New("Error function setStoreJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
-		return err
-	}
-	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	switch strings.ToLower(m.MType) {
 	case "gauge":
-		s.storage.SetGauge(m.ID, *m.Value)
+		s.SetGauge(m.ID, *m.Value)
 		return nil
 	case "counter":
-		s.storage.SetCounter(m.ID, *m.Delta)
+		s.SetCounter(m.ID, *m.Delta)
 		return nil
 	}
 	return storage.ErrNotImplemented
@@ -47,7 +41,15 @@ func (s *Server) setStoreJSONMetric(r *http.Request) error {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	err := s.setStoreJSONMetric(r)
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error function UpdateJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
+
+	err = SaveStoreDecodeMetric(m, s.storage)
 	w.Header().Set("Content-Type", "application/json")
 
 	var status int
@@ -89,6 +91,9 @@ func (s *Server) getStorageJSONMetric(r *http.Request) ([]byte, error) {
 	default:
 		return nil, storage.ErrNotImplemented
 	}
+	if err != nil {
+		return nil, err
+	}
 	response, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err.Error())
@@ -109,10 +114,16 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		resp, err = serializer.EncodingResponse(err.Error())
 	}
 
+	if err != nil {
+		log.Printf("Error GetJSONMetric - serializer.EncodingResponse(err.Error()) - %s", err.Error())
+		w.WriteHeader(status)
+		return
+	}
+
 	w.WriteHeader(status)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
+		log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
 	}
 
 }
