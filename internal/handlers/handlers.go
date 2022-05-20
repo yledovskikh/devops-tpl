@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,15 +41,15 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	//b, err := ioutil.ReadAll(r.Body)
-	//if err != nil {
-	//	log.Println("Error function UpdateJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//	return
-	//}
-	m := serializer.DecodingJSONMetric(r.Body)
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error function UpdateJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
 
-	err := SaveStoreDecodeMetric(m, s.storage)
+	err = SaveStoreDecodeMetric(m, s.storage)
 	w.Header().Set("Content-Type", "application/json")
 
 	var status int
@@ -73,14 +75,13 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getStorageJSONMetric(r *http.Request) ([]byte, error) {
-	//b, err := ioutil.ReadAll(r.Body)
-	//if err != nil {
-	//	err = errors.New("Error function getStorageJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
-	//	return nil, err
-	//}
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		err = errors.New("Error function getStorageJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
+		return nil, err
+	}
 
-	m := serializer.DecodingJSONMetric(r.Body)
-	var err error
+	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	switch strings.ToLower(m.MType) {
 	case "gauge":
 		*m.Value, err = s.storage.GetGauge(m.ID)
@@ -103,8 +104,8 @@ func (s *Server) getStorageJSONMetric(r *http.Request) ([]byte, error) {
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
-
 	w.Header().Set("Content-Type", "application/json")
+
 	resp, err := s.getStorageJSONMetric(r)
 	status := http.StatusOK
 
