@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -40,35 +38,34 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println("Error function UpdateJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
+	//b, err := ioutil.ReadAll(r.Body)
+	//if err != nil {
+	//	log.Println("Error function UpdateJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
+	m := serializer.DecodingJSONMetric(r.Body)
 
-	err = SaveStoreDecodeMetric(m, s.storage)
+	err := SaveStoreDecodeMetric(m, s.storage)
 	w.Header().Set("Content-Type", "application/json")
 
-	var status int
-	var resp []byte
+	status := http.StatusOK
+	msg := "Metric saved"
+	resp := serializer.DecodingResponse(msg)
+
+	//var resp serializer.JsonResponse
 	if err != nil {
 		status = storageErrToStatus(err)
-		resp, err = serializer.EncodingResponse(err.Error())
-	} else {
-		status = http.StatusOK
-		msg := "Metric saved"
-		resp, err = serializer.EncodingResponse(msg)
+		resp = serializer.DecodingResponse(err.Error())
 	}
-	if err != nil {
-		log.Println("Error function UpdateJSONMetric - serializer.EncodingResponse - ", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	//if err != nil {
+	//	log.Println("Error function UpdateJSONMetric - serializer.EncodingResponse - ", err.Error())
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
 	w.WriteHeader(status)
-	w.Write(resp)
-	//err = json.NewEncoder(w).Encode(resp)
+	//w.Write(resp)
+	err = json.NewEncoder(w).Encode(resp)
 	//if err != nil {
 	//	log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
 	//}
@@ -118,21 +115,26 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.getStorageJSONMetric(m)
 	if err != nil {
 		status := storageErrToStatus(err)
-		respErr, e := serializer.EncodingResponse(err.Error())
+		respErr := serializer.DecodingResponse(err.Error())
 		w.WriteHeader(status)
-		w.Write(respErr)
-		if e != nil {
-			log.Printf("Error GetJSONMetric - serializer.EncodingResponse(err.Error()) - %s", err.Error())
-			w.WriteHeader(status)
-			return
+		err = json.NewEncoder(w).Encode(respErr)
+		if err != nil {
+			log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
 		}
+		return
+		//w.Write(respErr)
+		//if e != nil {
+		//	log.Printf("Error GetJSONMetric - serializer.EncodingResponse(err.Error()) - %s", err.Error())
+		//	w.WriteHeader(status)
+		//	return
+		//}
 	}
 	//w.WriteHeader(status)
 	//w.Write(resp)
 	err = json.NewEncoder(w).Encode(resp)
-	//if err != nil {
-	//	log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
-	//}
+	if err != nil {
+		log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
+	}
 
 }
 

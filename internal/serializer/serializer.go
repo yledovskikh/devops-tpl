@@ -14,10 +14,9 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-//type JsonResponse struct {
-//	Delta string   `json:"correct,omitempty"` // значение метрики в случае передачи counter
-//	Value string `json:"error,omitempty"` // значение метрики в случае передачи gauge
-//}
+type JsonResponse struct {
+	Message string `json:"message"` // значение метрики в случае передачи gauge
+}
 
 //type Metric1 struct {
 //	ID    string  `json:"id"`              // имя метрики
@@ -55,11 +54,12 @@ func EncodingMetricCounter(id string, value int64) ([]byte, error) {
 	return json.Marshal(Metric{ID: id, MType: "counter", Delta: &value})
 }
 
-func EncodingResponse(msg string) ([]byte, error) {
-	message := make(map[string]string)
-	message["message"] = msg
-	resp, err := json.Marshal(message)
-	return resp, err
+func DecodingResponse(msg string) JsonResponse {
+	//message := make(map[string]string)
+	//message["message"] = msg
+	//resp, err := json.Marshal(message)
+	//return resp, err
+	return JsonResponse{Message: msg}
 }
 
 //
