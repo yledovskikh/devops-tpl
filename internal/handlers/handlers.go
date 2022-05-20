@@ -68,10 +68,11 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(status)
-	err = json.NewEncoder(w).Encode(resp)
-	if err != nil {
-		log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
-	}
+	w.Write(resp)
+	//err = json.NewEncoder(w).Encode(resp)
+	//if err != nil {
+	//	log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
+	//}
 }
 
 func (s *Server) getStorageJSONMetric(r *http.Request) ([]byte, error) {
