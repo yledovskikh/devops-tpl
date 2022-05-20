@@ -84,15 +84,21 @@ func (s *Server) getStorageJSONMetric(r *http.Request) ([]byte, error) {
 	m := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	switch strings.ToLower(m.MType) {
 	case "gauge":
-		*m.Value, err = s.storage.GetGauge(m.ID)
+		value, err := s.storage.GetGauge(m.ID)
+		m.Value = &value
+		if err != nil {
+			return nil, err
+		}
 	case "counter":
-		*m.Delta, err = s.storage.GetCounter(m.ID)
+		value, err := s.storage.GetCounter(m.ID)
+		m.Delta = &value
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, storage.ErrNotImplemented
 	}
-	if err != nil {
-		return nil, err
-	}
+
 	response, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err.Error())
@@ -121,7 +127,8 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(status)
-	err = json.NewEncoder(w).Encode(resp)
+	w.Write(resp)
+	//err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
 	}
