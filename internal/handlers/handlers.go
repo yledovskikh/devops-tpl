@@ -38,12 +38,6 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	//b, err := ioutil.ReadAll(r.Body)
-	//if err != nil {
-	//	log.Println("Error function UpdateJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//	return
-	//}
 	m := serializer.DecodingJSONMetric(r.Body)
 
 	err := SaveStoreDecodeMetric(m, s.storage)
@@ -53,32 +47,20 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	msg := "Metric saved"
 	resp := serializer.DecodingResponse(msg)
 
-	//var resp serializer.JsonResponse
 	if err != nil {
 		status = storageErrToStatus(err)
 		resp = serializer.DecodingResponse(err.Error())
 	}
-	//if err != nil {
-	//	log.Println("Error function UpdateJSONMetric - serializer.EncodingResponse - ", err.Error())
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//	return
-	//}
+
 	w.WriteHeader(status)
-	//w.Write(resp)
 	err = json.NewEncoder(w).Encode(resp)
-	//if err != nil {
-	//	log.Printf("Error UpdateJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
-	//}
+	if err != nil {
+		log.Printf(err.Error())
+	}
 }
 
 func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, error) {
-	//b, err := ioutil.ReadAll(r.Body)
-	//if err != nil {
-	//	err = errors.New("Error function getStorageJSONMetric - ioutil.ReadAll(r.Body) - " + err.Error())
-	//	return serializer.Metric{}, err
-	//}
 
-	//m := serializer.DecodingJSONMetric(bytes.NewReader(b))
 	switch strings.ToLower(m.MType) {
 	case "gauge":
 		value, err := s.storage.GetGauge(m.ID)
@@ -97,15 +79,6 @@ func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, e
 	}
 
 	return m, nil
-
-	//response, err := json.Marshal(m)
-	//if err != nil {
-	//	log.Println(err.Error())
-	//	err = errors.New("Error function getStorageJSONMetric - json.Marshal(m) - " + err.Error())
-	//	return nil, err
-	//}
-	//return response, err
-
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -117,23 +90,12 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		status := storageErrToStatus(err)
 		respErr := serializer.DecodingResponse(err.Error())
 		w.WriteHeader(status)
-		err = json.NewEncoder(w).Encode(respErr)
-		if err != nil {
-			log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
-		}
+		json.NewEncoder(w).Encode(respErr)
 		return
-		//w.Write(respErr)
-		//if e != nil {
-		//	log.Printf("Error GetJSONMetric - serializer.EncodingResponse(err.Error()) - %s", err.Error())
-		//	w.WriteHeader(status)
-		//	return
-		//}
 	}
-	//w.WriteHeader(status)
-	//w.Write(resp)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Printf("Error GetJSONMetric - json.NewEncoder(w).Encode(resp) - %s", err.Error())
+		log.Printf(err.Error())
 	}
 
 }
