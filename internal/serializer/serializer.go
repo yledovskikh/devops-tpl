@@ -36,14 +36,6 @@ func DecodingCounter(metricName string, metricValue int64) Metric {
 	return Metric{ID: metricName, MType: "counter", Delta: &metricValue}
 }
 
-func EncodingMetricGauge(id string, value float64) ([]byte, error) {
-	return json.Marshal(Metric{ID: id, MType: "gauge", Value: &value})
-}
-
-func EncodingMetricCounter(id string, value int64) ([]byte, error) {
-	return json.Marshal(Metric{ID: id, MType: "counter", Delta: &value})
-}
-
 func DecodingResponse(msg string) JSONResponse {
 	return JSONResponse{Message: msg}
 }

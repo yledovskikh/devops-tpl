@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"net/http"
@@ -61,11 +62,16 @@ func (a *Agent) collectMetrics() {
 	a.storage.SetCounter("PollCount", 1)
 	log.Println("INFO collect metrics")
 }
-func send2server(endpoint string, body []byte) error {
+func send2server(endpoint string, m serializer.Metric) error {
+
+	payloadBuf := new(bytes.Buffer)
+	if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
+		return err
+	}
 
 	url := endpoint + "/update/"
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, url, payloadBuf)
 	if err != nil {
 		return err
 	}
@@ -81,32 +87,24 @@ func send2server(endpoint string, body []byte) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("INFO metric %s was sent to %s \n", body, url)
+	log.Printf("INFO metric %s was sent to %s \n", m.ID, url)
 	return nil
 }
 
 func (a *Agent) postMetrics(endpoint string) {
 
 	for mName, mValue := range a.storage.GetAllGauges() {
-		body, err := serializer.EncodingMetricGauge(mName, mValue)
-		if err != nil {
-			log.Println(err)
-		}
-		if err = send2server(endpoint, body); err != nil {
+		m := serializer.DecodingGauge(mName, mValue)
+		if err := send2server(endpoint, m); err != nil {
 			log.Println(err.Error())
 			continue
 		}
 	}
 
 	for mName, mValue := range a.storage.GetAllCounters() {
-		body, err := serializer.EncodingMetricCounter(mName, mValue)
-
-		if err != nil {
+		m := serializer.DecodingCounter(mName, mValue)
+		if err := send2server(endpoint, m); err != nil {
 			log.Println(err.Error())
-		}
-
-		if err = send2server(endpoint, body); err != nil {
-			log.Println(err)
 			continue
 		}
 	}
@@ -118,9 +116,7 @@ func (a *Agent) Exec(endpoint string, pollInterval, reportInterval time.Duration
 	for {
 		select {
 		case <-pollIntervalTicker.C:
-			//runtime.ReadMemStats(&rtm)
 			a.collectMetrics()
-			//log.Println(time.Now().Format(time.UnixDate), "Counter update metrics: ", pollCount)
 		case <-reportIntervalTicker.C:
 			a.postMetrics(endpoint)
 		}
