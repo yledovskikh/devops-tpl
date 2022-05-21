@@ -38,15 +38,13 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	m := serializer.DecodingJSONMetric(r.Body)
-
-	err := SaveStoreDecodeMetric(m, s.storage)
 	w.Header().Set("Content-Type", "application/json")
-
 	status := http.StatusOK
 	msg := "Metric saved"
 	resp := serializer.DecodingResponse(msg)
 
+	m := serializer.DecodingJSONMetric(r.Body)
+	err := SaveStoreDecodeMetric(m, s.storage)
 	if err != nil {
 		status = storageErrToStatus(err)
 		resp = serializer.DecodingResponse(err.Error())
@@ -82,10 +80,10 @@ func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, e
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	m := serializer.DecodingJSONMetric(r.Body)
 
 	resp, err := s.getStorageJSONMetric(m)
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		status := storageErrToStatus(err)
 		respErr := serializer.DecodingResponse(err.Error())
