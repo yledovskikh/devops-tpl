@@ -108,6 +108,8 @@ func (a *Agent) postMetrics(endpoint string) {
 			continue
 		}
 	}
+	//reset counter after send to server
+	a.storage.SetCounter("PollCount", 0)
 }
 
 func (a *Agent) Exec(endpoint string, pollInterval, reportInterval time.Duration) {
