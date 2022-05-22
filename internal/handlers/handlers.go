@@ -15,6 +15,17 @@ import (
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
+//const (
+//	encodingGzip = "gzip"
+//
+//	headerAcceptEncoding  = "Accept-Encoding"
+//	headerContentEncoding = "Content-Encoding"
+//	headerContentLength   = "Content-Length"
+//	headerContentType     = "Content-Type"
+//	//headerVary            = "Vary"
+//	headerSecWebSocketKey = "Sec-WebSocket-Key"
+//)
+
 type Server struct {
 	storage storage.Storage
 }
@@ -198,6 +209,10 @@ type gzipWriter struct {
 
 func (w gzipWriter) Write(b []byte) (int, error) {
 	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
+	//if len(w.Header().Get(headerContentType)) == 0 {
+	//	w.Header().Set(headerContentType, http.DetectContentType(b))
+	//}
+
 	return w.Writer.Write(b)
 }
 
@@ -205,6 +220,10 @@ func CompressResponse(next http.Handler) http.Handler {
 	// собираем Handler приведением типа
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// проверяем, что клиент поддерживает gzip-сжатие
+
+		//next.ServeHTTP(w, r)
+		//return
+
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
@@ -212,22 +231,31 @@ func CompressResponse(next http.Handler) http.Handler {
 			return
 		}
 
+		//if len(r.Header.Get(headerSecWebSocketKey)) > 0 {
+		//	next.ServeHTTP(w, r)
+		//	return
+		//}
+		//
+		//// Skip compression if already compressed
+		//if w.Header().Get(headerContentEncoding) == encodingGzip {
+		//	next.ServeHTTP(w, r)
+		//	return
+		//}
+
+		//
 		// создаём gzip.Writer поверх текущего w
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			_, err := io.WriteString(w, err.Error())
-			if err != nil {
-				log.Println(err)
-			}
+			next.ServeHTTP(w, r)
 			return
-		}
-		err = gz.Close()
-		if err != nil {
-			log.Println(err)
 		}
 
 		w.Header().Set("Content-Encoding", "gzip")
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
+		err = gz.Close()
+		if err != nil {
+			log.Println(err)
+		}
 	})
 }
