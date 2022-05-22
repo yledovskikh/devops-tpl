@@ -26,7 +26,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Compress(5))
+	r.Use(handlers.Compression)
 	r.Get("/", func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "text/html")
 		rw.Write([]byte("Metrics Collection Server"))
