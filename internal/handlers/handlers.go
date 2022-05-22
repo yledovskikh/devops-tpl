@@ -45,8 +45,18 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	msg := "Metric saved"
 	resp := serializer.DecodingResponse(msg)
 
-	m := serializer.DecodingJSONMetric(r.Body)
-	err := SaveStoreDecodeMetric(m, s.storage)
+	var compressBody bool
+	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		compressBody = true
+	}
+
+	m, err := serializer.DecodingJSONMetric(r.Body, compressBody)
+	if err != nil {
+		status = storageErrToStatus(err)
+		resp = serializer.DecodingResponse(err.Error())
+	}
+
+	err = SaveStoreDecodeMetric(m, s.storage)
 	if err != nil {
 		status = storageErrToStatus(err)
 		resp = serializer.DecodingResponse(err.Error())
@@ -55,7 +65,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Print(err.Error())
 	}
 }
 
@@ -82,7 +92,9 @@ func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, e
 }
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
-	m := serializer.DecodingJSONMetric(r.Body)
+
+	// не обрабатываем ошибку, т.к. ожидаем что без компрессии мы всегда возвращаем структуру Metric
+	m, _ := serializer.DecodingJSONMetric(r.Body, false)
 
 	resp, err := s.getStorageJSONMetric(m)
 	w.Header().Set("Content-Type", "application/json")
@@ -90,12 +102,15 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		status := storageErrToStatus(err)
 		respErr := serializer.DecodingResponse(err.Error())
 		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(respErr)
+		err := json.NewEncoder(w).Encode(respErr)
+		if err != nil {
+			log.Println(err)
+		}
 		return
 	}
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Print(err.Error())
 	}
 
 }
@@ -153,7 +168,10 @@ func (s *Server) GetURLMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricValue, err := s.getStringMetric(metricType, metricName)
 	if err == nil {
-		fmt.Fprint(w, metricValue)
+		_, err := fmt.Fprint(w, metricValue)
+		if err != nil {
+			log.Println(err)
+		}
 		return
 	}
 	status := storageErrToStatus(err)
@@ -183,7 +201,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-func Compression(next http.Handler) http.Handler {
+func CompressResponse(next http.Handler) http.Handler {
 	// собираем Handler приведением типа
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// проверяем, что клиент поддерживает gzip-сжатие
@@ -197,10 +215,16 @@ func Compression(next http.Handler) http.Handler {
 		// создаём gzip.Writer поверх текущего w
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error())
+			_, err := io.WriteString(w, err.Error())
+			if err != nil {
+				log.Println(err)
+			}
 			return
 		}
-		defer gz.Close()
+		err = gz.Close()
+		if err != nil {
+			log.Println(err)
+		}
 
 		w.Header().Set("Content-Encoding", "gzip")
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных

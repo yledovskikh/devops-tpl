@@ -1,6 +1,7 @@
 package serializer
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"log"
@@ -17,15 +18,22 @@ type JSONResponse struct {
 	Message string `json:"message"` // значение метрики в случае передачи gauge
 }
 
-func DecodingJSONMetric(b io.Reader) Metric {
+func DecodingJSONMetric(r io.Reader, compress bool) (Metric, error) {
+
+	if compress {
+		_, err := decompress(r)
+		if err != nil {
+			return Metric{}, err
+		}
+	}
 
 	var m Metric
-	err := json.NewDecoder(b).Decode(&m)
+	err := json.NewDecoder(r).Decode(&m)
 	if err != nil {
 		log.Println("Error invalid decode request")
-		return Metric{}
+		return Metric{}, err
 	}
-	return m
+	return m, nil
 }
 
 func DecodingGauge(metricName string, metricValue float64) Metric {
@@ -38,4 +46,18 @@ func DecodingCounter(metricName string, metricValue int64) Metric {
 
 func DecodingResponse(msg string) JSONResponse {
 	return JSONResponse{Message: msg}
+}
+
+// Decompress распаковывает слайс байт.
+func decompress(r io.Reader) (io.Reader, error) {
+	// переменная r будет читать входящие данные и распаковывать их
+	zr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+	err = zr.Close()
+	if err != nil {
+		return nil, err
+	}
+	return zr, nil
 }
