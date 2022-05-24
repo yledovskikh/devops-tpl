@@ -248,7 +248,6 @@ func DecompressRequest(next http.Handler) http.Handler {
 		defer zr.Close()
 		r.Body = zr
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
