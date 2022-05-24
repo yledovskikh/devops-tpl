@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/caarlos0/env/v6"
@@ -43,31 +42,31 @@ type ServerConfigEnv struct {
 	ServerAddress string        `env:"ADDRESS"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
-	Restore       bool
+	Restore       bool          `env:"RESTORE"`
 }
 
-var pollInterval time.Duration
-var reportInterval time.Duration
-var storeInterval time.Duration
-var serverAddress string
-var storeFile string
-var restoreServer bool
+//var pollInterval time.Duration
+//var reportInterval time.Duration
+//var storeInterval time.Duration
+//var serverAddress string
+//var storeFile string
+//var restoreServer bool
 
 func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
 
-	cfg.EndPoint = cEnv.EndPoint
-	if cEnv.EndPoint == "" {
-		cfg.EndPoint = serverAddress
+	if cEnv.EndPoint != "" {
+		cfg.EndPoint = cEnv.EndPoint
 	}
 
-	cfg.PollInterval = cEnv.PollInterval
-	if cEnv.PollInterval == time.Duration(0) {
-		cfg.PollInterval = pollInterval
+	//Переделал проверку условия cEnv.ReportInterval != time.Duration(0)
+	//т.к. можно выставить переменную ОС - export REPORT_INTERVAL=0s
+	//по этой же причине не проверяю тип time.Duration и для других переменных
+	if cEnv.ReportInterval != time.Duration(0) {
+		cfg.ReportInterval = cEnv.ReportInterval
 	}
 
-	cfg.ReportInterval = cEnv.ReportInterval
-	if cEnv.ReportInterval == time.Duration(0) {
-		cfg.ReportInterval = reportInterval
+	if cEnv.PollInterval != time.Duration(0) {
+		cfg.PollInterval = cEnv.PollInterval
 	}
 
 	cfg.EndPoint = "http://" + cfg.EndPoint
@@ -75,28 +74,26 @@ func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
 
 func validateServerConfig(cfg *ServerConfig, cEnv *ServerConfigEnv) {
 
-	cfg.ServerAddress = cEnv.ServerAddress
-	if cEnv.ServerAddress == "" {
-		cfg.ServerAddress = serverAddress
-	}
-	cfg.StoreFile = cEnv.StoreFile
-	if cEnv.StoreFile == "" {
-		cfg.StoreFile = storeFile
-	}
-	cfg.StoreInterval = cEnv.StoreInterval
-	if cfg.StoreInterval == time.Duration(0) {
-		cfg.StoreInterval = storeInterval
+	if cEnv.ServerAddress != "" {
+		cfg.ServerAddress = cEnv.ServerAddress
 	}
 
-	restoreEnv := os.Getenv("RESTORE")
-	if restoreEnv == "" {
-		cfg.Restore = restoreServer
-	} else {
-		var err error
-		cfg.Restore, err = strconv.ParseBool(restoreEnv)
-		if err != nil {
-			cfg.Restore = restoreDefault
-		}
+	if cEnv.StoreFile != "" {
+		cfg.StoreFile = cEnv.StoreFile
+	}
+
+	if os.Getenv("STORE_INTERVAL") != "" {
+		cfg.StoreInterval = cEnv.StoreInterval
+	}
+
+	//Если выставили флаг, то значение cfg.Restore у нас установлено корректно через flag.BoolVar
+	//Если флаг не выставили, то cfg.Restore у нас держит значение по умолчанию через flag.BoolVar
+	//Переопределяем cfg.Restore только если было выставлено значение в переменной ОС RESTORE
+	//
+	//$ unset RESTORE
+	//$ ./server -r false # Not restore server from file
+	if os.Getenv("RESTORE") != "" {
+		cfg.Restore = cEnv.Restore
 	}
 
 }
@@ -105,9 +102,9 @@ func GetAgentConfig() AgentConfig {
 	var cfg AgentConfig
 	var cEnv AgentConfigEnv
 
-	flag.StringVar(&serverAddress, "a", serverAddressDefault, "server address")
-	flag.DurationVar(&pollInterval, "p", pollIntervalDefault, "poll metrics interval")
-	flag.DurationVar(&reportInterval, "r", reportIntervalDefault, "report metric interval")
+	flag.StringVar(&cfg.EndPoint, "a", serverAddressDefault, "server address")
+	flag.DurationVar(&cfg.PollInterval, "p", pollIntervalDefault, "poll metrics interval")
+	flag.DurationVar(&cfg.ReportInterval, "r", reportIntervalDefault, "report metric interval")
 
 	flag.Parse()
 	err := env.Parse(&cEnv)
@@ -123,10 +120,10 @@ func GetServerConfig() ServerConfig {
 	var cfg ServerConfig
 	var cEnv ServerConfigEnv
 
-	flag.StringVar(&serverAddress, "a", serverAddressDefault, "server address")
-	flag.DurationVar(&storeInterval, "i", storeIntervalDefault, "dump metrics to file interval")
-	flag.StringVar(&storeFile, "f", storeFileDefault, "dump file name")
-	flag.BoolVar(&restoreServer, "r", restoreDefault, "restore metrics from file")
+	flag.StringVar(&cfg.ServerAddress, "a", serverAddressDefault, "server address")
+	flag.DurationVar(&cfg.StoreInterval, "i", storeIntervalDefault, "dump metrics to file interval")
+	flag.StringVar(&cfg.StoreFile, "f", storeFileDefault, "dump file name")
+	flag.BoolVar(&cfg.Restore, "r", restoreDefault, "restore metrics from file")
 
 	flag.Parse()
 	err := env.Parse(&cEnv)
