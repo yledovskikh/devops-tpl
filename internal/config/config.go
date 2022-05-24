@@ -45,13 +45,6 @@ type ServerConfigEnv struct {
 	Restore       bool          `env:"RESTORE"`
 }
 
-//var pollInterval time.Duration
-//var reportInterval time.Duration
-//var storeInterval time.Duration
-//var serverAddress string
-//var storeFile string
-//var restoreServer bool
-
 func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
 
 	if cEnv.EndPoint != "" {

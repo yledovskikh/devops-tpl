@@ -15,17 +15,6 @@ import (
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
-//const (
-//	encodingGzip = "gzip"
-//
-//	headerAcceptEncoding  = "Accept-Encoding"
-//	headerContentEncoding = "Content-Encoding"
-//	headerContentLength   = "Content-Length"
-//	headerContentType     = "Content-Type"
-//	//headerVary            = "Vary"
-//	headerSecWebSocketKey = "Sec-WebSocket-Key"
-//)
-
 type Server struct {
 	storage storage.Storage
 }
@@ -34,6 +23,18 @@ func New(storage storage.Storage) *Server {
 	return &Server{
 		storage: storage,
 	}
+}
+
+func errJsonResponse(err error, w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	status := storageErrToStatus(err)
+	respErr := serializer.DecodingResponse(err.Error())
+	w.WriteHeader(status)
+	err = json.NewEncoder(w).Encode(respErr)
+	if err != nil {
+		log.Println(err)
+	}
+
 }
 
 func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
@@ -51,29 +52,21 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
-	status := http.StatusOK
-	msg := "Metric saved"
-	resp := serializer.DecodingResponse(msg)
-
-	var compressBody bool
-	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		compressBody = true
-	}
-
-	m, err := serializer.DecodingJSONMetric(r.Body, compressBody)
+	m, err := serializer.DecodingJSONMetric(r.Body)
 	if err != nil {
-		status = storageErrToStatus(err)
-		resp = serializer.DecodingResponse(err.Error())
+		errJsonResponse(err, w)
+		return
 	}
 
 	err = SaveStoreDecodeMetric(m, s.storage)
 	if err != nil {
-		status = storageErrToStatus(err)
-		resp = serializer.DecodingResponse(err.Error())
+		errJsonResponse(err, w)
+		return
 	}
 
-	w.WriteHeader(status)
+	w.Header().Set("Content-Type", "application/json")
+	msg := "Metric saved"
+	resp := serializer.DecodingResponse(msg)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		log.Print(err.Error())
@@ -104,26 +97,21 @@ func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, e
 
 func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
-	// не обрабатываем ошибку, т.к. ожидаем что без компрессии мы всегда возвращаем структуру Metric
-	m, _ := serializer.DecodingJSONMetric(r.Body, false)
-
-	resp, err := s.getStorageJSONMetric(m)
-	w.Header().Set("Content-Type", "application/json")
+	m, err := serializer.DecodingJSONMetric(r.Body)
 	if err != nil {
-		status := storageErrToStatus(err)
-		respErr := serializer.DecodingResponse(err.Error())
-		w.WriteHeader(status)
-		err := json.NewEncoder(w).Encode(respErr)
-		if err != nil {
-			log.Println(err)
-		}
+		errJsonResponse(err, w)
 		return
 	}
+	resp, err := s.getStorageJSONMetric(m)
+	if err != nil {
+		errJsonResponse(err, w)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		log.Print(err.Error())
 	}
-
 }
 
 func (s *Server) saveStringMetric(metricType, metricName, metricValue string) error {
@@ -208,11 +196,6 @@ type gzipWriter struct {
 }
 
 func (w gzipWriter) Write(b []byte) (int, error) {
-	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
-	//if len(w.Header().Get(headerContentType)) == 0 {
-	//	w.Header().Set(headerContentType, http.DetectContentType(b))
-	//}
-
 	return w.Writer.Write(b)
 }
 
@@ -258,10 +241,12 @@ func DecompressRequest(next http.Handler) http.Handler {
 		zr, err := gzip.NewReader(r.Body)
 		if err != nil {
 			next.ServeHTTP(w, r)
+			log.Println(err)
 			return
 		}
 		err = zr.Close()
 		if err != nil {
+			log.Println(err)
 			next.ServeHTTP(w, r)
 		}
 		r.Body = zr

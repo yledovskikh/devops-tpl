@@ -18,14 +18,7 @@ type JSONResponse struct {
 	Message string `json:"message"` // значение метрики в случае передачи gauge
 }
 
-func DecodingJSONMetric(r io.Reader, compress bool) (Metric, error) {
-
-	if compress {
-		err := decompress(r)
-		if err != nil {
-			return Metric{}, err
-		}
-	}
+func DecodingJSONMetric(r io.Reader) (Metric, error) {
 
 	var m Metric
 	err := json.NewDecoder(r).Decode(&m)
