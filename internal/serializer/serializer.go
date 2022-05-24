@@ -21,7 +21,7 @@ type JSONResponse struct {
 func DecodingJSONMetric(r io.Reader, compress bool) (Metric, error) {
 
 	if compress {
-		_, err := decompress(r)
+		err := decompress(r)
 		if err != nil {
 			return Metric{}, err
 		}
@@ -49,15 +49,15 @@ func DecodingResponse(msg string) JSONResponse {
 }
 
 // Decompress распаковывает слайс байт.
-func decompress(r io.Reader) (io.Reader, error) {
+func decompress(r io.Reader) error {
 	// переменная r будет читать входящие данные и распаковывать их
 	zr, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	err = zr.Close()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return zr, nil
+	return nil
 }

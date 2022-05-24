@@ -103,7 +103,7 @@ func Exp(s storage.Storage, fileName string) {
 }
 
 func Imp(s storage.Storage, fileName string) {
-	log.Println("Info start import data from file")
+	log.Println("Info start import DATA from file")
 	consumer, err := NewConsumer(fileName)
 	if err != nil {
 		log.Println(err)
@@ -128,8 +128,6 @@ func Exec(wg *sync.WaitGroup, ctx context.Context, storage storage.Storage, serv
 	defer wg.Done()
 	dumpInt := time.NewTicker(serverConfig.StoreInterval)
 	log.Println("INFO dump file")
-	Exp(storage, serverConfig.StoreFile)
-
 	for {
 		select {
 		case <-ctx.Done():

@@ -18,7 +18,6 @@ import (
 )
 
 func main() {
-	//ctx, cancel := context.WithCancel(context.Background())
 	r := chi.NewRouter()
 	s := storage.NewMetricStore()
 	h := handlers.New(s)
@@ -27,11 +26,8 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(handlers.CompressResponse)
-	//r.Use(middleware.Compress(5))
-	r.Get("/", func(rw http.ResponseWriter, r *http.Request) {
-		rw.Header().Set("Content-Type", "text/html")
-		rw.Write([]byte("Metrics Collection Server"))
-	})
+	r.Use(handlers.DecompressRequest)
+	r.Get("/", h.AllMetrics)
 	r.Post("/update/", h.UpdateJSONMetric)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateURLMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
@@ -65,11 +61,6 @@ func main() {
 	<-done
 	log.Print("Server Stopped")
 
-	//defer func() {
-	//	//dumper.Exp(s, serverConfig.StoreFile) // extra handling here
-	//
-	//}()
-	//
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server Shutdown Failed:%+v", err)
 	}

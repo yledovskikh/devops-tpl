@@ -219,10 +219,6 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 func CompressResponse(next http.Handler) http.Handler {
 	// собираем Handler приведением типа
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// проверяем, что клиент поддерживает gzip-сжатие
-
-		//next.ServeHTTP(w, r)
-		//return
 
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
@@ -231,18 +227,6 @@ func CompressResponse(next http.Handler) http.Handler {
 			return
 		}
 
-		//if len(r.Header.Get(headerSecWebSocketKey)) > 0 {
-		//	next.ServeHTTP(w, r)
-		//	return
-		//}
-		//
-		//// Skip compression if already compressed
-		//if w.Header().Get(headerContentEncoding) == encodingGzip {
-		//	next.ServeHTTP(w, r)
-		//	return
-		//}
-
-		//
 		// создаём gzip.Writer поверх текущего w
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
@@ -258,4 +242,40 @@ func CompressResponse(next http.Handler) http.Handler {
 			log.Println(err)
 		}
 	})
+}
+
+func DecompressRequest(next http.Handler) http.Handler {
+	// собираем Handler приведением типа
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if !strings.Contains(r.Header.Get("Encoding"), "gzip") {
+			// если gzip не поддерживается, передаём управление
+			// дальше без изменений
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		zr, err := gzip.NewReader(r.Body)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		err = zr.Close()
+		if err != nil {
+			next.ServeHTTP(w, r)
+		}
+		r.Body = zr
+		next.ServeHTTP(w, r)
+		return
+	})
+}
+
+func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	for metric, value := range s.storage.GetAllGauges() {
+		fmt.Fprint(w, "<br>", metric, ":", value, "</br>")
+	}
+	for metric, value := range s.storage.GetAllCounters() {
+		fmt.Fprint(w, "<br>", metric, ":", value, "</br>")
+	}
 }
