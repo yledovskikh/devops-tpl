@@ -231,7 +231,7 @@ func DecompressRequest(next http.Handler) http.Handler {
 	// собираем Handler приведением типа
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		if !strings.Contains(r.Header.Get("Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
 			next.ServeHTTP(w, r)
@@ -240,15 +240,12 @@ func DecompressRequest(next http.Handler) http.Handler {
 
 		zr, err := gzip.NewReader(r.Body)
 		if err != nil {
-			next.ServeHTTP(w, r)
+			err = fmt.Errorf("reading gzip body failed:%w", err)
 			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		err = zr.Close()
-		if err != nil {
-			log.Println(err)
-			next.ServeHTTP(w, r)
-		}
+		defer zr.Close()
 		r.Body = zr
 		next.ServeHTTP(w, r)
 		return
