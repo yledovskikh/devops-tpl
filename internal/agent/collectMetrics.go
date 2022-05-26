@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/yledovskikh/devops-tpl/internal/config"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
@@ -91,10 +92,10 @@ func send2server(endpoint string, m serializer.Metric) error {
 	return nil
 }
 
-func (a *Agent) postMetrics(endpoint string) {
+func (a *Agent) postMetrics(endpoint string, key string) {
 
 	for mName, mValue := range a.storage.GetAllGauges() {
-		m := serializer.DecodingGauge(mName, mValue)
+		m := serializer.DecodingGauge(mName, mValue, key)
 		if err := send2server(endpoint, m); err != nil {
 			log.Println(err.Error())
 			continue
@@ -102,7 +103,7 @@ func (a *Agent) postMetrics(endpoint string) {
 	}
 
 	for mName, mValue := range a.storage.GetAllCounters() {
-		m := serializer.DecodingCounter(mName, mValue)
+		m := serializer.DecodingCounter(mName, mValue, key)
 		if err := send2server(endpoint, m); err != nil {
 			log.Println(err.Error())
 			continue
@@ -112,15 +113,15 @@ func (a *Agent) postMetrics(endpoint string) {
 	a.storage.SetCounter("PollCount", 0)
 }
 
-func (a *Agent) Exec(endpoint string, pollInterval, reportInterval time.Duration) {
-	pollIntervalTicker := time.NewTicker(pollInterval)
-	reportIntervalTicker := time.NewTicker(reportInterval)
+func (a *Agent) Exec(agentConfig config.AgentConfig) {
+	pollIntervalTicker := time.NewTicker(agentConfig.PollInterval)
+	reportIntervalTicker := time.NewTicker(agentConfig.ReportInterval)
 	for {
 		select {
 		case <-pollIntervalTicker.C:
 			a.collectMetrics()
 		case <-reportIntervalTicker.C:
-			a.postMetrics(endpoint)
+			a.postMetrics(agentConfig.EndPoint, agentConfig.Key)
 		}
 	}
 }

@@ -19,7 +19,7 @@ func main() {
 	log.Printf("endpoint: %s, pollInterval: %s , reportInterval: %s", agentConfig.EndPoint, agentConfig.PollInterval, agentConfig.ReportInterval)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	go h.Exec(agentConfig.EndPoint, agentConfig.PollInterval, agentConfig.ReportInterval)
+	go h.Exec(agentConfig)
 	exitCode := <-signalChannel
 	fmt.Println(exitCode)
 
