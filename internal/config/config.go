@@ -62,11 +62,12 @@ func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
 	//Переделал проверку условия cEnv.ReportInterval != time.Duration(0)
 	//т.к. можно выставить переменную ОС - export REPORT_INTERVAL=0s
 	//по этой же причине не проверяю тип time.Duration и для других переменных
-	if cEnv.ReportInterval != time.Duration(0) {
+
+	if os.Getenv("REPORT_INTERVAL") != "" {
 		cfg.ReportInterval = cEnv.ReportInterval
 	}
 
-	if cEnv.PollInterval != time.Duration(0) {
+	if os.Getenv("POLL_INTERVAL") != "" {
 		cfg.PollInterval = cEnv.PollInterval
 	}
 
