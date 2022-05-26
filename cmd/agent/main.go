@@ -2,26 +2,24 @@ package main
 
 import (
 	"fmt"
-	"github.com/yledovskikh/devops-tpl/internal/agent"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-)
 
-const (
-	//endpoint       	= "http://localhost:8080"
-	//contextURL     	= "update"
-	updateMetricURL = "http://localhost:8080/update"
-	pollInterval    = 2 * time.Second
-	reportInterval  = 10 * time.Second
+	"github.com/yledovskikh/devops-tpl/internal/agent"
+	"github.com/yledovskikh/devops-tpl/internal/config"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 func main() {
-
+	s := storage.NewMetricStore()
+	h := agent.New(s)
+	agentConfig := config.GetAgentConfig()
+	log.Printf("endpoint: %s, pollInterval: %s , reportInterval: %s", agentConfig.EndPoint, agentConfig.PollInterval, agentConfig.ReportInterval)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	go agent.RefreshMetrics(pollInterval, reportInterval, updateMetricURL)
+	go h.Exec(agentConfig.EndPoint, agentConfig.PollInterval, agentConfig.ReportInterval)
 	exitCode := <-signalChannel
 	fmt.Println(exitCode)
 

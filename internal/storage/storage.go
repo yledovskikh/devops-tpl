@@ -2,116 +2,93 @@ package storage
 
 import (
 	"errors"
-	"fmt"
-	"strconv"
-	"strings"
+	"log"
 	"sync"
 )
 
-////type RunTimeMetrics struct {
-////TODO rewrite to interface
-//var Counter = make(map[string]int64)
-//var Gauge = make(map[string]float64)
-
 type Storage interface {
-	Get(metricType string, metricName string) (string, error)
-	Put(metricType string, metricName string, metricValue string) error
+	GetGauge(metricName string) (float64, error)
+	SetGauge(metricName string, metricValue float64)
+	GetAllGauges() map[string]float64
+
+	GetCounter(metricName string) (int64, error)
+	SetCounter(metricName string, metricValue int64)
+	GetAllCounters() map[string]int64
+}
+
+type MetricStore struct {
+	counters     map[string]int64
+	gauges       map[string]float64
+	countersLock sync.RWMutex
+	gaugesLock   sync.RWMutex
 }
 
 var (
-	mutex             = &sync.RWMutex{}
 	ErrBadRequest     = errors.New("invalid value")
 	ErrNotFound       = errors.New("metric not found")
 	ErrNotImplemented = errors.New("unknown metric type")
 )
 
-type MetricStore struct {
-	counter map[string]int64
-	gauge   map[string]float64
-}
-
 func NewMetricStore() *MetricStore {
 	return &MetricStore{
-		counter: make(map[string]int64),
-		gauge:   make(map[string]float64),
+		counters: make(map[string]int64),
+		gauges:   make(map[string]float64),
 	}
 }
 
-func (s *MetricStore) Put(metricType string, metricName string, metricValue string) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-	switch strings.ToLower(metricType) {
-	case "gauge":
-		vg, err := strconv.ParseFloat(metricValue, 64)
-		if err != nil {
-			return ErrBadRequest
-		}
-		s.gauge[metricName] = vg
-	case "counter":
-		vg, err := strconv.ParseInt(metricValue, 10, 64)
+func (s *MetricStore) SetGauge(metricName string, metricValue float64) {
+	s.gaugesLock.Lock()
+	defer s.gaugesLock.Unlock()
+	s.gauges[metricName] = metricValue
+	log.Printf("save metric gauge - %s:%v", metricName, metricValue)
 
-		if err != nil {
-			return ErrBadRequest
-		}
-		s.counter[metricName] += vg
-	default:
-		return ErrNotImplemented
-	}
-
-	return nil
 }
 
-func (s *MetricStore) Get(metricType string, metricName string) (string, error) {
+func (s *MetricStore) GetGauge(metricName string) (float64, error) {
+	s.gaugesLock.RLock()
+	defer s.gaugesLock.RUnlock()
 
-	mutex.RLock()
-	defer mutex.RUnlock()
-
-	switch metricType {
-	case "gauge":
-		if val, ok := s.gauge[metricName]; ok {
-			return fmt.Sprintf("%v", val), nil
-		}
-	case "counter":
-		if val, ok := s.counter[metricName]; ok {
-			return fmt.Sprintf("%v", val), nil
-		}
+	if val, ok := s.gauges[metricName]; ok {
+		return val, nil
 	}
-	return "", ErrNotFound
+	return 0, ErrNotFound
 }
 
-//}
+func (s *MetricStore) GetAllGauges() map[string]float64 {
+	s.gaugesLock.RLock()
+	defer s.gaugesLock.RUnlock()
+	m := make(map[string]float64)
+	for i, val := range s.gauges {
+		m[i] = val
+	}
+	return m
+}
 
-//type gauge float64
-//type counter int64
+func (s *MetricStore) SetCounter(metricName string, metricValue int64) {
+	s.countersLock.Lock()
+	defer s.countersLock.Unlock()
+	s.counters[metricName] += metricValue
 
-//type RunTimeMetrics struct {
-//	Alloc         gauge
-//	BuckHashSys   gauge
-//	Frees         gauge
-//	GCCPUFraction gauge
-//	GCSys         gauge
-//	HeapAlloc     gauge
-//	HeapIdle      gauge
-//	HeapInuse     gauge
-//	HeapObjects   gauge
-//	HeapReleased  gauge
-//	HeapSys       gauge
-//	LastGC        gauge
-//	Lookups       gauge
-//	MCacheInuse   gauge
-//	MCacheSys     gauge
-//	MSpanInuse    gauge
-//	MSpanSys      gauge
-//	Mallocs       gauge
-//	NextGC        gauge
-//	NumForcedGC   gauge
-//	NumGC         gauge
-//	OtherSys      gauge
-//	PauseTotalNs  gauge
-//	StackInuse    gauge
-//	StackSys      gauge
-//	Sys           gauge
-//	TotalAlloc    gauge
-//	RandomValue   gauge
-//	PollCount     counter
-//}
+	log.Printf("save metric counter - %s:%d", metricName, metricValue)
+
+}
+
+func (s *MetricStore) GetCounter(metricName string) (int64, error) {
+	s.countersLock.RLock()
+	defer s.countersLock.RUnlock()
+
+	if val, ok := s.counters[metricName]; ok {
+		return val, nil
+	}
+	return 0, ErrNotFound
+}
+
+func (s *MetricStore) GetAllCounters() map[string]int64 {
+	s.countersLock.RLock()
+	defer s.countersLock.RUnlock()
+	m := make(map[string]int64)
+	for i, val := range s.counters {
+		m[i] = val
+	}
+	return m
+}

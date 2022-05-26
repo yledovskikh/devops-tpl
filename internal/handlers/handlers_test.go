@@ -1,15 +1,16 @@
 package handlers
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
-func TestServer_GetMetric(t *testing.T) {
+func TestServer_GetURLMetricMetric(t *testing.T) {
 	type want struct {
 		statusCode int
 	}
@@ -54,8 +55,13 @@ func TestServer_GetMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			s := storage.NewMetricStore()
-			s.Put(tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
 			h := New(s)
+			h.saveStringMetric(tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
+			////ms := map[string]string{"metricType": tt.metric.metricType, "metricName": tt.metric.metricName, "metricValue": tt.metric.metricValue}
+			//m := serializer.DecodingStringMetric(tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
+			//s.SetMetric(m)
+			//fmt.Println("Test Metric", tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
+			//
 
 			path := "/value/" + tt.metric.metricType + "/" + tt.metric.metricName
 			req, err := http.NewRequest("GET", path, nil)
@@ -64,7 +70,7 @@ func TestServer_GetMetric(t *testing.T) {
 			}
 			tr := httptest.NewRecorder()
 			r := chi.NewRouter()
-			r.HandleFunc("/value/{metricType}/{metricName}", h.GetMetric)
+			r.HandleFunc("/value/{metricType}/{metricName}", h.GetURLMetric)
 			r.ServeHTTP(tr, req)
 			res := tr.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
@@ -128,7 +134,7 @@ func TestServer_PostMetric(t *testing.T) {
 			}
 			tr := httptest.NewRecorder()
 			r := chi.NewRouter()
-			r.HandleFunc("/update/{metricType}/{metricName}/{metricValue}", h.PostMetric)
+			r.HandleFunc("/update/{metricType}/{metricName}/{metricValue}", h.UpdateURLMetric)
 			r.ServeHTTP(tr, req)
 			res := tr.Result()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
