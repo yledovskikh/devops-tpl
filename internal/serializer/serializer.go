@@ -1,7 +1,6 @@
 package serializer
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"io"
 	"log"
@@ -39,18 +38,4 @@ func DecodingCounter(metricName string, metricValue int64) Metric {
 
 func DecodingResponse(msg string) JSONResponse {
 	return JSONResponse{Message: msg}
-}
-
-// Decompress распаковывает слайс байт.
-func decompress(r io.Reader) error {
-	// переменная r будет читать входящие данные и распаковывать их
-	zr, err := gzip.NewReader(r)
-	if err != nil {
-		return err
-	}
-	err = zr.Close()
-	if err != nil {
-		return err
-	}
-	return nil
 }
