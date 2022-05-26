@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/yledovskikh/devops-tpl/internal/config"
+	"github.com/yledovskikh/devops-tpl/internal/hash"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
@@ -95,7 +97,13 @@ func send2server(endpoint string, m serializer.Metric) error {
 func (a *Agent) postMetrics(endpoint string, key string) {
 
 	for mName, mValue := range a.storage.GetAllGauges() {
-		m := serializer.DecodingGauge(mName, mValue, key)
+		var h string
+		if key != "" {
+			data := fmt.Sprintf("%s:gauge:%f", mName, mValue)
+			h = hash.SignData(key, data)
+		}
+
+		m := serializer.DecodingGauge(mName, mValue, h)
 		if err := send2server(endpoint, m); err != nil {
 			log.Println(err.Error())
 			continue
@@ -103,7 +111,12 @@ func (a *Agent) postMetrics(endpoint string, key string) {
 	}
 
 	for mName, mValue := range a.storage.GetAllCounters() {
-		m := serializer.DecodingCounter(mName, mValue, key)
+		var h string
+		if key != "" {
+			data := fmt.Sprintf("%s:counter:%d", mName, mValue)
+			h = hash.SignData(key, data)
+		}
+		m := serializer.DecodingCounter(mName, mValue, h)
 		if err := send2server(endpoint, m); err != nil {
 			log.Println(err.Error())
 			continue

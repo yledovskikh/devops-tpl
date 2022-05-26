@@ -11,12 +11,14 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yledovskikh/devops-tpl/internal/hash"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 type Server struct {
 	storage storage.Storage
+	Key     string
 }
 
 func New(storage storage.Storage) *Server {
@@ -50,9 +52,36 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 	return storage.ErrNotImplemented
 }
 
+func verifyMetric(m serializer.Metric, key string) error {
+	var data string
+	switch strings.ToLower(m.MType) {
+	default:
+		return storage.ErrNotImplemented
+	case "gauge":
+		data = fmt.Sprintf("%s:gauge:%d", m.ID, m.Value)
+	case "counter":
+		data = fmt.Sprintf("%s:counter:%d", m.ID, m.Delta)
+	}
+	h := hash.SignData(key, data)
+	v := hash.HashVerify(m.Hash, h)
+	if !v {
+		return storage.ErrNotImplemented
+	}
+	return nil
+}
+
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	m, err := serializer.DecodingJSONMetric(r.Body)
+	if err != nil {
+		errJSONResponse(err, w)
+		return
+	}
+
+	if s.Key != "" {
+		err = verifyMetric(m, s.Key)
+	}
+
 	if err != nil {
 		errJSONResponse(err, w)
 		return
@@ -73,8 +102,8 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, error) {
-
+func (s *Server) getStorageJSONMetric(m serializer.Metric, key string) (serializer.Metric, error) {
+	var data string
 	switch strings.ToLower(m.MType) {
 	case "gauge":
 		value, err := s.storage.GetGauge(m.ID)
@@ -82,16 +111,21 @@ func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, e
 		if err != nil {
 			return serializer.Metric{}, err
 		}
+		data = fmt.Sprintf("%s:gauge:%d", m.ID, m.Value)
 	case "counter":
 		value, err := s.storage.GetCounter(m.ID)
 		m.Delta = &value
 		if err != nil {
 			return serializer.Metric{}, err
 		}
+		data = fmt.Sprintf("%s:counter:%d", m.ID, m.Delta)
 	default:
 		return serializer.Metric{}, storage.ErrNotImplemented
 	}
-
+	if key != "" {
+		h := hash.SignData(key, data)
+		m.Hash = h
+	}
 	return m, nil
 }
 
@@ -102,7 +136,7 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		errJSONResponse(err, w)
 		return
 	}
-	resp, err := s.getStorageJSONMetric(m)
+	resp, err := s.getStorageJSONMetric(m, s.Key)
 	if err != nil {
 		errJSONResponse(err, w)
 		return

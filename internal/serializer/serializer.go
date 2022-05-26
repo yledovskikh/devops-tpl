@@ -2,11 +2,8 @@ package serializer
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
-
-	"github.com/yledovskikh/devops-tpl/internal/hash"
 )
 
 type Metric struct {
@@ -32,21 +29,11 @@ func DecodingJSONMetric(r io.Reader) (Metric, error) {
 	return m, nil
 }
 
-func DecodingGauge(metricName string, metricValue float64, key string) Metric {
-	var h string
-	if key != "" {
-		data := fmt.Sprintf("%s:gauge:%f", metricName, metricValue)
-		h = hash.SignData(key, data)
-	}
+func DecodingGauge(metricName string, metricValue float64, h string) Metric {
 	return Metric{ID: metricName, MType: "gauge", Value: &metricValue, Hash: h}
 }
 
-func DecodingCounter(metricName string, metricValue int64, key string) Metric {
-	var h string
-	if key != "" {
-		data := fmt.Sprintf("%s:counter:%d", metricName, metricValue)
-		h = hash.SignData(key, data)
-	}
+func DecodingCounter(metricName string, metricValue int64, h string) Metric {
 
 	return Metric{ID: metricName, MType: "counter", Delta: &metricValue, Hash: h}
 }

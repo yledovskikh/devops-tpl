@@ -18,9 +18,12 @@ import (
 )
 
 func main() {
+	serverConfig := config.GetServerConfig()
+
 	r := chi.NewRouter()
 	s := storage.NewMetricStore()
 	h := handlers.New(s)
+	h.Key = serverConfig.Key
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -35,7 +38,6 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	serverConfig := config.GetServerConfig()
 	if serverConfig.Restore {
 		dumper.Imp(s, serverConfig.StoreFile)
 	}
