@@ -251,7 +251,7 @@ func DecompressRequest(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) AllMetrics(w http.ResponseWriter) {
+func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	for metric, value := range s.storage.GetAllGauges() {
 		fmt.Fprint(w, "<br>", metric, ":", value, "</br>")
