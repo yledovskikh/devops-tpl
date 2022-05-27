@@ -113,14 +113,14 @@ func (s *Server) getStorageJSONMetric(m serializer.Metric, key string) (serializ
 		if err != nil {
 			return serializer.Metric{}, err
 		}
-		data = fmt.Sprintf("%s:gauge:%d", m.ID, m.Value)
+		data = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
 	case "counter":
 		value, err := s.storage.GetCounter(m.ID)
 		m.Delta = &value
 		if err != nil {
 			return serializer.Metric{}, err
 		}
-		data = fmt.Sprintf("%s:counter:%d", m.ID, m.Delta)
+		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
 	default:
 		return serializer.Metric{}, storage.ErrNotImplemented
 	}
