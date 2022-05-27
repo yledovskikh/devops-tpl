@@ -58,12 +58,13 @@ func verifyMetric(m serializer.Metric, key string) error {
 	default:
 		return storage.ErrNotImplemented
 	case "gauge":
-		data = fmt.Sprintf("%s:gauge:%d", m.ID, m.Value)
+		data = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
 	case "counter":
-		data = fmt.Sprintf("%s:counter:%d", m.ID, m.Delta)
+		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
 	}
 	h := hash.SignData(key, data)
-	v := hash.HashVerify(m.Hash, h)
+	log.Println(h, data)
+	v := hash.VerifyHash(m.Hash, h)
 	if !v {
 		return storage.ErrNotImplemented
 	}
@@ -84,6 +85,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		errJSONResponse(err, w)
+		log.Println("Not verify hash")
 		return
 	}
 

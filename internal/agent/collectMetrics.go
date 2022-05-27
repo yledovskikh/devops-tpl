@@ -81,7 +81,6 @@ func send2server(endpoint string, m serializer.Metric) error {
 
 	req.Header.Add("Content-Type", "application/json")
 	response, err := client.Do(req)
-
 	if err != nil {
 		return err
 	}
@@ -101,6 +100,7 @@ func (a *Agent) postMetrics(endpoint string, key string) {
 		if key != "" {
 			data := fmt.Sprintf("%s:gauge:%f", mName, mValue)
 			h = hash.SignData(key, data)
+			log.Println(h, data)
 		}
 
 		m := serializer.DecodingGauge(mName, mValue, h)
