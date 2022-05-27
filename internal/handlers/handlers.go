@@ -63,9 +63,9 @@ func verifyMetric(m serializer.Metric, key string) error {
 		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
 	}
 	h := hash.SignData(key, data)
-	log.Println(h, data)
-	v := hash.VerifyHash(m.Hash, h)
-	if !v {
+	//log.Println(h, data)
+	//v := hash.VerifyHash(m.Hash, h)
+	if h != m.Hash {
 		return storage.ErrNotImplemented
 	}
 	return nil
