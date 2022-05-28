@@ -26,7 +26,6 @@ vendor/
 
 podman-postgresql.sh
 DATA
-TEST
 devopstest
 random
 test.sh

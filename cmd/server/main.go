@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/yledovskikh/devops-tpl/internal/config"
 	"github.com/yledovskikh/devops-tpl/internal/dumper"
 	"github.com/yledovskikh/devops-tpl/internal/handlers"
@@ -24,6 +25,7 @@ func main() {
 	s := storage.NewMetricStore()
 	h := handlers.New(s)
 	h.Key = serverConfig.Key
+	h.Dsn = serverConfig.DatabaseDSN
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -31,6 +33,7 @@ func main() {
 	r.Use(handlers.CompressResponse)
 	r.Use(handlers.DecompressRequest)
 	r.Get("/", h.AllMetrics)
+	r.Get("/ping", h.Ping)
 	r.Post("/update/", h.UpdateJSONMetric)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateURLMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)

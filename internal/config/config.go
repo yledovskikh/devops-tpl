@@ -39,6 +39,7 @@ type ServerConfig struct {
 	StoreFile     string
 	Restore       bool
 	Key           string
+	DatabaseDSN   string
 }
 
 type ServerConfigEnv struct {
@@ -47,6 +48,7 @@ type ServerConfigEnv struct {
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`
 	Key           string        `env:"KEY"`
+	DatabaseDSN   string        `env:"DATABASE_DSN"`
 }
 
 func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
@@ -102,6 +104,10 @@ func validateServerConfig(cfg *ServerConfig, cEnv *ServerConfigEnv) {
 		cfg.Restore = cEnv.Restore
 	}
 
+	if cEnv.DatabaseDSN != "" {
+		cfg.DatabaseDSN = cEnv.DatabaseDSN
+	}
+
 }
 
 func GetAgentConfig() AgentConfig {
@@ -132,6 +138,7 @@ func GetServerConfig() ServerConfig {
 	flag.StringVar(&cfg.StoreFile, "f", storeFileDefault, "dump file name")
 	flag.BoolVar(&cfg.Restore, "r", restoreDefault, "restore metrics from file")
 	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
+	flag.StringVar(&cfg.DatabaseDSN, "d", "", "Data Source Name")
 
 	flag.Parse()
 	err := env.Parse(&cEnv)

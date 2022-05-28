@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yledovskikh/devops-tpl/internal/db"
 	"github.com/yledovskikh/devops-tpl/internal/hash"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
@@ -19,6 +20,7 @@ import (
 type Server struct {
 	storage storage.Storage
 	Key     string
+	Dsn     string
 }
 
 func New(storage storage.Storage) *Server {
@@ -63,8 +65,6 @@ func verifyMetric(m serializer.Metric, key string) error {
 		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
 	}
 	h := hash.SignData(key, data)
-	//log.Println(h, data)
-	//v := hash.VerifyHash(m.Hash, h)
 	if h != m.Hash {
 		return storage.ErrNotImplemented
 	}
@@ -295,4 +295,16 @@ func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
 	for metric, value := range s.storage.GetAllCounters() {
 		fmt.Fprint(w, "<br>", metric, ":", value, "</br>")
 	}
+}
+
+func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
+	err := db.PingDB(s.Dsn)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Println(err.Error())
+		return
+	}
+	w.Write([]byte("database is open"))
+	log.Println("database is open")
 }
