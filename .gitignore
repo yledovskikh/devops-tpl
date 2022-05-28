@@ -24,8 +24,5 @@ vendor/
 .idea
 .vscode
 
-podman-postgresql.sh
-DATA
-devopstest
-random
-test.sh
+TOOLS
+TEST
