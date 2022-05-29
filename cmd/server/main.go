@@ -23,14 +23,16 @@ func main() {
 
 	serverConfig := config.GetServerConfig()
 
-	//TODO дополнительная обработка связанности с хранением метрик в файле
-	d, err := db.New(serverConfig.DatabaseDSN)
+	if serverConfig.DatabaseDSN != "" {
+		//TODO дополнительная обработка связанности с хранением метрик в файле
+		d, err := db.New(serverConfig.DatabaseDSN)
 
-	if err != nil {
-		log.Fatal("unable to use data source name", err)
+		if err != nil {
+			log.Fatal("unable to use data source name", err)
+		}
+		//Закрываем коннекты в БД
+		defer d.Close()
 	}
-	//Закрываем коннекты в БД
-	defer d.Close()
 
 	r := chi.NewRouter()
 	s := inmemory.NewMetricStore()
@@ -38,6 +40,10 @@ func main() {
 	h.Key = serverConfig.Key
 	h.DB = d
 	h.Ctx = ctx
+
+	if serverConfig.Restore {
+		dumper.Imp(s, serverConfig.StoreFile)
+	}
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -52,9 +58,6 @@ func main() {
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 
-	if serverConfig.Restore {
-		dumper.Imp(s, serverConfig.StoreFile)
-	}
 	var wg sync.WaitGroup
 
 	wg.Add(1)
