@@ -25,12 +25,12 @@ func main() {
 
 	//TODO дополнительная обработка связанности с хранением метрик в файле
 	d, err := db.New(serverConfig.DatabaseDSN)
-	//Закрываем коннекты в БД
-	defer d.Close()
 
 	if err != nil {
 		log.Fatal("unable to use data source name", err)
 	}
+	//Закрываем коннекты в БД
+	defer d.Close()
 
 	r := chi.NewRouter()
 	s := inmemory.NewMetricStore()
