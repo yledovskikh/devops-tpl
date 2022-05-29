@@ -23,6 +23,11 @@ func main() {
 
 	serverConfig := config.GetServerConfig()
 
+	r := chi.NewRouter()
+	s := inmemory.NewMetricStore()
+	h := handlers.New(s)
+	h.Key = serverConfig.Key
+
 	if serverConfig.DatabaseDSN != "" {
 		//TODO дополнительная обработка связанности с хранением метрик в файле
 		d, err := db.New(serverConfig.DatabaseDSN)
@@ -32,13 +37,9 @@ func main() {
 		}
 		//Закрываем коннекты в БД
 		defer d.Close()
+		h.DB = d
 	}
 
-	r := chi.NewRouter()
-	s := inmemory.NewMetricStore()
-	h := handlers.New(s)
-	h.Key = serverConfig.Key
-	h.DB = d
 	h.Ctx = ctx
 
 	if serverConfig.Restore {
