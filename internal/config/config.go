@@ -138,6 +138,7 @@ func GetServerConfig() ServerConfig {
 	flag.StringVar(&cfg.StoreFile, "f", storeFileDefault, "dump file name")
 	flag.BoolVar(&cfg.Restore, "r", restoreDefault, "restore metrics from file")
 	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
+	//postgres://username:password@localhost:5432/database_name
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "Data Source Name")
 
 	flag.Parse()

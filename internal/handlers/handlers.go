@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,7 +21,8 @@ import (
 type Server struct {
 	storage storage.Storage
 	Key     string
-	Dsn     string
+	DB      *db.DB
+	Ctx     context.Context
 }
 
 func New(storage storage.Storage) *Server {
@@ -298,7 +300,7 @@ func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
-	err := db.PingDB(s.Dsn)
+	err := s.DB.PingDB(s.Ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))

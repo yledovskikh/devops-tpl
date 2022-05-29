@@ -11,21 +11,34 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/yledovskikh/devops-tpl/internal/config"
+	"github.com/yledovskikh/devops-tpl/internal/db"
 	"github.com/yledovskikh/devops-tpl/internal/dumper"
 	"github.com/yledovskikh/devops-tpl/internal/handlers"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
+	"github.com/yledovskikh/devops-tpl/internal/inmemory"
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	serverConfig := config.GetServerConfig()
 
+	//TODO дополнительная обработка связанности с хранением метрик в файле
+	d, err := db.New(serverConfig.DatabaseDSN)
+	//Закрываем коннекты в БД
+	defer d.Close()
+
+	if err != nil {
+		log.Fatal("unable to use data source name", err)
+	}
+
 	r := chi.NewRouter()
-	s := storage.NewMetricStore()
+	s := inmemory.NewMetricStore()
 	h := handlers.New(s)
 	h.Key = serverConfig.Key
-	h.Dsn = serverConfig.DatabaseDSN
+	h.DB = d
+	h.Ctx = ctx
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -38,8 +51,6 @@ func main() {
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateURLMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
-
-	ctx, cancel := context.WithCancel(context.Background())
 
 	if serverConfig.Restore {
 		dumper.Imp(s, serverConfig.StoreFile)
@@ -69,6 +80,11 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server Shutdown Failed:%+v", err)
 	}
+	//Закрываем к
+	//if err := ; err != nil {
+	//	log.Fatal("Close Database Connects Failde:%+v", err)
+	//}
+
 	cancel()
 	wg.Wait()
 	log.Print("Server Exited Properly")

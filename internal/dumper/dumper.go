@@ -56,11 +56,6 @@ func NewConsumer(filename string) (*consumer, error) {
 }
 
 func (c *consumer) ReadMetric() (serializer.Metric, error) {
-	// одиночное сканирование до следующей строки
-	//if !c.scanner.Scan() {
-	//	return serializer.Metric{}, c.scanner.Err()
-	//}
-	// читаем данные из scanner
 	data := c.scanner.Bytes()
 
 	log.Println("Read string - ", string(data))

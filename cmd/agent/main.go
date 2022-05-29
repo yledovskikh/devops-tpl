@@ -9,11 +9,11 @@ import (
 
 	"github.com/yledovskikh/devops-tpl/internal/agent"
 	"github.com/yledovskikh/devops-tpl/internal/config"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
+	"github.com/yledovskikh/devops-tpl/internal/inmemory"
 )
 
 func main() {
-	s := storage.NewMetricStore()
+	s := inmemory.NewMetricStore()
 	h := agent.New(s)
 	agentConfig := config.GetAgentConfig()
 	log.Printf("endpoint: %s, pollInterval: %s , reportInterval: %s", agentConfig.EndPoint, agentConfig.PollInterval, agentConfig.ReportInterval)
