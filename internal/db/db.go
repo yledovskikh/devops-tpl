@@ -142,8 +142,8 @@ func (d *DB) GetAllCounters() map[string]int64 {
 func dbMigrate(d *pgxpool.Pool, ctx context.Context) error {
 	execSQL := []string{
 		"CREATE SEQUENCE IF NOT EXISTS serial START 1",
-		"CREATE TABLE IF NOT EXISTS mcounter(id integer PRIMARY KEY DEFAULT nextval('serial'), metric_name varchar(20) NOT NULL, metric_value bigint NOT NULL, CONSTRAINT mcounter_metric_name_unique UNIQUE (metric_name))",
-		"CREATE TABLE IF NOT EXISTS mgauges(id integer PRIMARY KEY DEFAULT nextval('serial'), metric_name varchar(20) NOT NULL, metric_value double precision NOT NULL, CONSTRAINT mgauges_metric_name_unique UNIQUE (metric_name))",
+		"CREATE TABLE IF NOT EXISTS mcounter(id integer PRIMARY KEY DEFAULT nextval('serial'), metric_name varchar(255) NOT NULL, metric_value bigint NOT NULL, CONSTRAINT mcounter_metric_name_unique UNIQUE (metric_name))",
+		"CREATE TABLE IF NOT EXISTS mgauges(id integer PRIMARY KEY DEFAULT nextval('serial'), metric_name varchar(255) NOT NULL, metric_value double precision NOT NULL, CONSTRAINT mgauges_metric_name_unique UNIQUE (metric_name))",
 	}
 
 	for _, sql := range execSQL {
