@@ -16,6 +16,7 @@ import (
 	"github.com/yledovskikh/devops-tpl/internal/dumper"
 	"github.com/yledovskikh/devops-tpl/internal/handlers"
 	"github.com/yledovskikh/devops-tpl/internal/inmemory"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 func main() {
@@ -24,23 +25,24 @@ func main() {
 	serverConfig := config.GetServerConfig()
 
 	r := chi.NewRouter()
-	s := inmemory.NewMetricStore()
-	h := handlers.New(s)
-	h.Key = serverConfig.Key
 
+	var s storage.Storage
+	var err error
 	if serverConfig.DatabaseDSN != "" {
+		log.Println("User Database Storage")
 		//TODO дополнительная обработка связанности с хранением метрик в файле
-		d, err := db.New(serverConfig.DatabaseDSN)
+		s, err = db.New(serverConfig.DatabaseDSN, ctx)
 
 		if err != nil {
 			log.Fatal("unable to use data source name", err)
 		}
 		//Закрываем коннекты в БД
-		defer d.Close()
-		h.DB = d
+		defer s.Close()
+	} else {
+		s = inmemory.NewMetricStore()
 	}
-
-	h.Ctx = ctx
+	h := handlers.New(s)
+	h.Key = serverConfig.Key
 
 	if serverConfig.Restore {
 		dumper.Imp(s, serverConfig.StoreFile)

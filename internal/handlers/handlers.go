@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yledovskikh/devops-tpl/internal/db"
+
 	"github.com/yledovskikh/devops-tpl/internal/hash"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
@@ -22,7 +22,6 @@ type Server struct {
 	storage storage.Storage
 	Key     string
 	DB      *db.DB
-	Ctx     context.Context
 }
 
 func New(storage storage.Storage) *Server {
@@ -47,11 +46,11 @@ func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
 
 	switch strings.ToLower(m.MType) {
 	case "gauge":
-		s.SetGauge(m.ID, *m.Value)
-		return nil
+		err := s.SetGauge(m.ID, *m.Value)
+		return err
 	case "counter":
-		s.SetCounter(m.ID, *m.Delta)
-		return nil
+		err := s.SetCounter(m.ID, *m.Delta)
+		return err
 	}
 	return storage.ErrNotImplemented
 }
@@ -300,7 +299,8 @@ func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
-	err := s.DB.PingDB(s.Ctx)
+	//TODO придумать как лучше
+	err := s.storage.PingDB()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))

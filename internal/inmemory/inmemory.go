@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"errors"
 	"log"
 	"sync"
 
@@ -12,6 +13,7 @@ type MetricStore struct {
 	gauges       map[string]float64
 	countersLock sync.RWMutex
 	gaugesLock   sync.RWMutex
+	storage.Storage
 }
 
 func NewMetricStore() *MetricStore {
@@ -21,11 +23,12 @@ func NewMetricStore() *MetricStore {
 	}
 }
 
-func (s *MetricStore) SetGauge(metricName string, metricValue float64) {
+func (s *MetricStore) SetGauge(metricName string, metricValue float64) error {
 	s.gaugesLock.Lock()
 	defer s.gaugesLock.Unlock()
 	s.gauges[metricName] = metricValue
 	log.Printf("save metric gauge - %s:%v", metricName, metricValue)
+	return nil
 
 }
 
@@ -49,13 +52,13 @@ func (s *MetricStore) GetAllGauges() map[string]float64 {
 	return m
 }
 
-func (s *MetricStore) SetCounter(metricName string, metricValue int64) {
+func (s *MetricStore) SetCounter(metricName string, metricValue int64) error {
 	s.countersLock.Lock()
 	defer s.countersLock.Unlock()
 	s.counters[metricName] += metricValue
 
 	log.Printf("save metric counter - %s:%d", metricName, metricValue)
-
+	return nil
 }
 
 func (s *MetricStore) GetCounter(metricName string) (int64, error) {
@@ -76,4 +79,13 @@ func (s *MetricStore) GetAllCounters() map[string]int64 {
 		m[i] = val
 	}
 	return m
+}
+
+func (s *MetricStore) PingDB() error {
+	err := errors.New("Not Configured DB")
+	return err
+}
+
+func (s *MetricStore) Close() {
+	//blanc func
 }

@@ -6,12 +6,14 @@ import (
 
 type Storage interface {
 	GetGauge(metricName string) (float64, error)
-	SetGauge(metricName string, metricValue float64)
+	SetGauge(metricName string, metricValue float64) error
 	GetAllGauges() map[string]float64
 
 	GetCounter(metricName string) (int64, error)
-	SetCounter(metricName string, metricValue int64)
+	SetCounter(metricName string, metricValue int64) error
 	GetAllCounters() map[string]int64
+	PingDB() error
+	Close()
 }
 
 var (
