@@ -52,11 +52,11 @@ func (d *DB) GetGauge(metricName string) (float64, error) {
 	row := d.Pool.QueryRow(d.ctx, sql, metricName)
 	switch err := row.Scan(&metric); err {
 	case pgx.ErrNoRows:
-		return 0, err
+		return 0, storage.ErrNotFound
 	case nil:
 		return metric, nil
 	default:
-		return 0, storage.ErrNotFound
+		return 0, err
 	}
 }
 
@@ -99,11 +99,12 @@ func (d *DB) GetCounter(metricName string) (int64, error) {
 	row := d.Pool.QueryRow(d.ctx, sql, metricName)
 	switch err := row.Scan(&metric); err {
 	case pgx.ErrNoRows:
-		return 0, err
+		return 0, storage.ErrNotFound
 	case nil:
 		return metric, nil
 	default:
-		return 0, storage.ErrNotFound
+		return 0, err
+
 	}
 }
 func (d *DB) SetCounter(metricName string, metricValue int64) error {

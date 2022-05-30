@@ -82,7 +82,7 @@ func (s *MetricStore) GetAllCounters() map[string]int64 {
 }
 
 func (s *MetricStore) PingDB() error {
-	err := errors.New("Not Configured DB")
+	err := errors.New("not configured db")
 	return err
 }
 
