@@ -89,7 +89,7 @@ func send2server(endpoint string, m serializer.Metric) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("INFO metric %s was sent to %s \n", m.ID, url)
+	//log.Printf("INFO metric %s was sent to %s \n", payloadBuf)
 	return nil
 }
 

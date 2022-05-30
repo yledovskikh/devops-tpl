@@ -107,9 +107,10 @@ func (d *DB) GetCounter(metricName string) (int64, error) {
 
 	}
 }
+
 func (d *DB) SetCounter(metricName string, metricValue int64) error {
-	log.Println("Set Counter to DB")
-	sql := "INSERT INTO mcounter (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = $2 WHERE mcounter.metric_name = $1;"
+	log.Println("Set Counter to DB", metricValue)
+	sql := "INSERT INTO mcounter (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = mcounter.metric_value+$2 WHERE mcounter.metric_name = $1;"
 	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
 	return err
 }
