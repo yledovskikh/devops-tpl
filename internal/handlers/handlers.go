@@ -119,8 +119,10 @@ func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
 	for _, metric := range metrics {
 		switch strings.ToLower(metric.MType) {
 		case "gauge":
+			log.Println("debug: gauge", metric.ID, *metric.Value)
 			gauges[metric.ID] = *metric.Value
 		case "counter":
+			log.Println("debug: counter", metric.ID, *metric.Delta)
 			counters[metric.ID] = *metric.Delta
 		default:
 			errJSONResponse(storage.ErrNotFound, w)
