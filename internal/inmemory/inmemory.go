@@ -89,3 +89,8 @@ func (s *MetricStore) PingDB() error {
 func (s *MetricStore) Close() {
 	//blanc func
 }
+
+func (s *MetricStore) SetMetrics(*map[string]int64, *map[string]float64) error {
+
+	return nil
+}

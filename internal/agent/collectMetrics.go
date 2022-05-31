@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -65,18 +66,12 @@ func (a *Agent) collectMetrics() {
 	a.storage.SetCounter("PollCount", 1)
 	log.Println("INFO collect metrics")
 }
-func send2server(endpoint string, m serializer.Metric) error {
+func send2server(url string, payloadBuf io.Reader) error {
 
-	payloadBuf := new(bytes.Buffer)
-	if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
-		return err
-	}
-
-	url := endpoint + "/update/"
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, url, payloadBuf)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -94,6 +89,7 @@ func send2server(endpoint string, m serializer.Metric) error {
 }
 
 func (a *Agent) postMetrics(endpoint string, key string) {
+	url := endpoint + "/update/"
 
 	for mName, mValue := range a.storage.GetAllGauges() {
 		var h string
@@ -103,8 +99,14 @@ func (a *Agent) postMetrics(endpoint string, key string) {
 			log.Println(h, data)
 		}
 
-		m := serializer.DecodingGauge(mName, mValue, h)
-		if err := send2server(endpoint, m); err != nil {
+		m := serializer.SerializeGauge(mName, mValue, h)
+		// TODO Нужно выяснить можно ли это переменную payloadBuf инициировать один раз
+		payloadBuf := new(bytes.Buffer)
+		if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
+			log.Println(err.Error())
+		}
+
+		if err := send2server(url, payloadBuf); err != nil {
 			log.Println(err.Error())
 			continue
 		}
@@ -116,11 +118,55 @@ func (a *Agent) postMetrics(endpoint string, key string) {
 			data := fmt.Sprintf("%s:counter:%d", mName, mValue)
 			h = hash.SignData(key, data)
 		}
-		m := serializer.DecodingCounter(mName, mValue, h)
-		if err := send2server(endpoint, m); err != nil {
+		m := serializer.SerializeCounter(mName, mValue, h)
+		// TODO Нужно выяснить можно ли это переменную payloadBuf инициировать один раз
+		payloadBuf := new(bytes.Buffer)
+		if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
+			log.Println(err.Error())
+		}
+
+		if err := send2server(url, payloadBuf); err != nil {
 			log.Println(err.Error())
 			continue
 		}
+	}
+	//reset counter after send to server
+	a.storage.SetCounter("PollCount", 0)
+}
+
+func (a *Agent) postBulkMetrics(endpoint string, key string) {
+	url := endpoint + "/updates/"
+	var metrics []serializer.Metric
+
+	for mName, mValue := range a.storage.GetAllGauges() {
+		var h string
+		if key != "" {
+			data := fmt.Sprintf("%s:gauge:%f", mName, mValue)
+			h = hash.SignData(key, data)
+			log.Println(h, data)
+		}
+
+		m := serializer.SerializeGauge(mName, mValue, h)
+		metrics = append(metrics, m)
+	}
+
+	for mName, mValue := range a.storage.GetAllCounters() {
+		var h string
+		if key != "" {
+			data := fmt.Sprintf("%s:counter:%d", mName, mValue)
+			h = hash.SignData(key, data)
+		}
+		m := serializer.SerializeCounter(mName, mValue, h)
+		metrics = append(metrics, m)
+	}
+
+	payloadBuf := new(bytes.Buffer)
+	if err := json.NewEncoder(payloadBuf).Encode(metrics); err != nil {
+		log.Println(err.Error())
+	}
+
+	if err := send2server(url, payloadBuf); err != nil {
+		log.Println(err.Error())
 	}
 	//reset counter after send to server
 	a.storage.SetCounter("PollCount", 0)
@@ -134,7 +180,7 @@ func (a *Agent) Exec(agentConfig config.AgentConfig) {
 		case <-pollIntervalTicker.C:
 			a.collectMetrics()
 		case <-reportIntervalTicker.C:
-			a.postMetrics(agentConfig.EndPoint, agentConfig.Key)
+			a.postBulkMetrics(agentConfig.EndPoint, agentConfig.Key)
 		}
 	}
 }

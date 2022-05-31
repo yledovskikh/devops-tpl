@@ -33,7 +33,7 @@ func New(storage storage.Storage) *Server {
 func errJSONResponse(err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	status := storageErrToStatus(err)
-	respErr := serializer.DecodingResponse(err.Error())
+	respErr := serializer.SerializeResponse(err.Error())
 	w.WriteHeader(status)
 	err = json.NewEncoder(w).Encode(respErr)
 	if err != nil {
@@ -42,7 +42,7 @@ func errJSONResponse(err error, w http.ResponseWriter) {
 
 }
 
-func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
+func SaveStoreMetric(m serializer.Metric, s storage.Storage) error {
 
 	switch strings.ToLower(m.MType) {
 	case "gauge":
@@ -90,7 +90,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = SaveStoreDecodeMetric(m, s.storage)
+	err = SaveStoreMetric(m, s.storage)
 	if err != nil {
 		errJSONResponse(err, w)
 		return
@@ -98,7 +98,43 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	msg := "Metric saved"
-	resp := serializer.DecodingResponse(msg)
+	resp := serializer.SerializeResponse(msg)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		log.Print(err.Error())
+	}
+}
+
+func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
+
+	metrics, err := serializer.DecodingJSONMetrics(r.Body)
+	if err != nil {
+		errJSONResponse(err, w)
+		return
+	}
+
+	gauges := make(map[string]float64)
+	counters := make(map[string]int64)
+
+	for _, metric := range metrics {
+		switch strings.ToLower(metric.MType) {
+		case "gauge":
+			gauges[metric.ID] = *metric.Value
+		case "counter":
+			counters[metric.ID] = *metric.Delta
+		default:
+			errJSONResponse(storage.ErrNotFound, w)
+			return
+		}
+	}
+	err = s.storage.SetMetrics(&counters, &gauges)
+	if err != nil {
+		errJSONResponse(err, w)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	msg := "Metrics saved"
+	resp := serializer.SerializeResponse(msg)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		log.Print(err.Error())
@@ -299,7 +335,6 @@ func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
-	//TODO придумать как лучше
 	err := s.storage.PingDB()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

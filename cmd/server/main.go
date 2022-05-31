@@ -57,6 +57,7 @@ func main() {
 	r.Get("/", h.AllMetrics)
 	r.Get("/ping", h.Ping)
 	r.Post("/update/", h.UpdateJSONMetric)
+	r.Post("/updates/", h.UpdatesJSONMetrics)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", h.UpdateURLMetric)
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)

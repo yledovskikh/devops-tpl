@@ -156,3 +156,33 @@ func dbMigrate(d *pgxpool.Pool, ctx context.Context) error {
 
 	return nil
 }
+
+func (d *DB) SetMetrics(counters *map[string]int64, gauges *map[string]float64) error {
+	tx, err := d.Pool.Begin(d.ctx)
+	if err != nil {
+		return err
+	}
+	// Rollback is safe to call even if the tx is already closed, so if
+	// the tx commits successfully, this is a no-op
+	defer tx.Rollback(d.ctx)
+
+	for mName, mGauge := range *gauges {
+		err = d.SetGauge(mName, mGauge)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	for mName, mCounter := range *counters {
+		err = d.SetCounter(mName, mCounter)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	err = tx.Commit(d.ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}

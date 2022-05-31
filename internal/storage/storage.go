@@ -5,6 +5,8 @@ import (
 )
 
 type Storage interface {
+	SetMetrics(counters *map[string]int64, gauges *map[string]float64) error
+
 	GetGauge(metricName string) (float64, error)
 	SetGauge(metricName string, metricValue float64) error
 	GetAllGauges() map[string]float64

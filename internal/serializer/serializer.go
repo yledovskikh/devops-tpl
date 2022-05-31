@@ -29,15 +29,26 @@ func DecodingJSONMetric(r io.Reader) (Metric, error) {
 	return m, nil
 }
 
-func DecodingGauge(metricName string, metricValue float64, h string) Metric {
+func DecodingJSONMetrics(r io.Reader) ([]Metric, error) {
+
+	var m []Metric
+	err := json.NewDecoder(r).Decode(&m)
+	if err != nil {
+		log.Println("Error invalid decode request")
+		return []Metric{}, err
+	}
+	return m, nil
+}
+
+func SerializeGauge(metricName string, metricValue float64, h string) Metric {
 	return Metric{ID: metricName, MType: "gauge", Value: &metricValue, Hash: h}
 }
 
-func DecodingCounter(metricName string, metricValue int64, h string) Metric {
+func SerializeCounter(metricName string, metricValue int64, h string) Metric {
 
 	return Metric{ID: metricName, MType: "counter", Delta: &metricValue, Hash: h}
 }
 
-func DecodingResponse(msg string) JSONResponse {
+func SerializeResponse(msg string) JSONResponse {
 	return JSONResponse{Message: msg}
 }
