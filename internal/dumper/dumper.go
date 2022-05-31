@@ -30,7 +30,7 @@ func NewProducer(fileName string) (*producer, error) {
 		encoder: json.NewEncoder(file),
 	}, nil
 }
-func (p *producer) WriteMetric(metric *serializer.Metric) error {
+func (p *producer) WriteMetric(metric *storage.Metric) error {
 	return p.encoder.Encode(&metric)
 }
 func (p *producer) Close() error {
@@ -55,15 +55,15 @@ func NewConsumer(filename string) (*consumer, error) {
 	}, nil
 }
 
-func (c *consumer) ReadMetric() (serializer.Metric, error) {
+func (c *consumer) ReadMetric() (storage.Metric, error) {
 	data := c.scanner.Bytes()
 
 	log.Println("Read string - ", string(data))
 
-	metric := serializer.Metric{}
+	metric := storage.Metric{}
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return serializer.Metric{}, err
+		return storage.Metric{}, err
 	}
 
 	return metric, nil

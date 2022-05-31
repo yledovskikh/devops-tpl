@@ -134,9 +134,9 @@ func (a *Agent) postMetrics(endpoint string, key string) {
 	a.storage.SetCounter("PollCount", 0)
 }
 
-func (a *Agent) postBulkMetrics(endpoint string, key string) {
+func (a *Agent) postBatchMetrics(endpoint string, key string) {
 	url := endpoint + "/updates/"
-	var metrics []serializer.Metric
+	var metrics []storage.Metric
 
 	for mName, mValue := range a.storage.GetAllGauges() {
 		var h string
@@ -180,7 +180,7 @@ func (a *Agent) Exec(agentConfig config.AgentConfig) {
 		case <-pollIntervalTicker.C:
 			a.collectMetrics()
 		case <-reportIntervalTicker.C:
-			a.postBulkMetrics(agentConfig.EndPoint, agentConfig.Key)
+			a.postBatchMetrics(agentConfig.EndPoint, agentConfig.Key)
 		}
 	}
 }

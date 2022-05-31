@@ -158,7 +158,7 @@ func dbMigrate(d *pgxpool.Pool, ctx context.Context) error {
 	return nil
 }
 
-func (d *DB) SetMetrics(metrics []storage.Metric) error {
+func (d *DB) SetMetrics(metrics *[]storage.Metric) error {
 	tx, err := d.Pool.Begin(d.ctx)
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func (d *DB) SetMetrics(metrics []storage.Metric) error {
 	// the tx commits successfully, this is a no-op
 	defer tx.Rollback(d.ctx)
 
-	for _, metric := range metrics {
+	for _, metric := range *metrics {
 		switch strings.ToLower(metric.MType) {
 		case "gauge":
 			err = d.SetGauge(metric.ID, *metric.Value)

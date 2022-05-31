@@ -91,9 +91,9 @@ func (s *MetricStore) Close() {
 	//blanc func
 }
 
-func (s *MetricStore) SetMetrics(metrics []storage.Metric) error {
+func (s *MetricStore) SetMetrics(metrics *[]storage.Metric) error {
 
-	for _, metric := range metrics {
+	for _, metric := range *metrics {
 		switch strings.ToLower(metric.MType) {
 		case "gauge":
 			log.Println("debug: gauge", metric.ID, *metric.Value)
