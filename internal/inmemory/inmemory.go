@@ -3,6 +3,7 @@ package inmemory
 import (
 	"errors"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/yledovskikh/devops-tpl/internal/storage"
@@ -90,7 +91,25 @@ func (s *MetricStore) Close() {
 	//blanc func
 }
 
-func (s *MetricStore) SetMetrics(*map[string]int64, *map[string]float64) error {
+func (s *MetricStore) SetMetrics(metrics []storage.Metric) error {
 
+	for _, metric := range metrics {
+		switch strings.ToLower(metric.MType) {
+		case "gauge":
+			log.Println("debug: gauge", metric.ID, *metric.Value)
+			err := s.SetGauge(metric.ID, *metric.Value)
+			if err != nil {
+				log.Println(err)
+			}
+		case "counter":
+			log.Println("debug: counter", metric.ID, *metric.Delta)
+			err := s.SetCounter(metric.ID, *metric.Delta)
+			if err != nil {
+				log.Println(err)
+			}
+		default:
+			return storage.ErrNotFound
+		}
+	}
 	return nil
 }

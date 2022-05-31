@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -157,7 +158,7 @@ func dbMigrate(d *pgxpool.Pool, ctx context.Context) error {
 	return nil
 }
 
-func (d *DB) SetMetrics(counters *map[string]int64, gauges *map[string]float64) error {
+func (d *DB) SetMetrics(metrics []storage.Metric) error {
 	tx, err := d.Pool.Begin(d.ctx)
 	if err != nil {
 		return err
@@ -166,17 +167,18 @@ func (d *DB) SetMetrics(counters *map[string]int64, gauges *map[string]float64) 
 	// the tx commits successfully, this is a no-op
 	defer tx.Rollback(d.ctx)
 
-	for mName, mGauge := range *gauges {
-		err = d.SetGauge(mName, mGauge)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-
-	for mName, mCounter := range *counters {
-		err = d.SetCounter(mName, mCounter)
-		if err != nil {
-			log.Println(err)
+	for _, metric := range metrics {
+		switch strings.ToLower(metric.MType) {
+		case "gauge":
+			err = d.SetGauge(metric.ID, *metric.Value)
+			if err != nil {
+				log.Println(err)
+			}
+		case "counter":
+			err = d.SetCounter(metric.ID, *metric.Delta)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}
 

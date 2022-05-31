@@ -42,7 +42,7 @@ func errJSONResponse(err error, w http.ResponseWriter) {
 
 }
 
-func SaveStoreMetric(m serializer.Metric, s storage.Storage) error {
+func SaveStoreMetric(m storage.Metric, s storage.Storage) error {
 
 	switch strings.ToLower(m.MType) {
 	case "gauge":
@@ -55,7 +55,7 @@ func SaveStoreMetric(m serializer.Metric, s storage.Storage) error {
 	return storage.ErrNotImplemented
 }
 
-func verifyMetric(m serializer.Metric, key string) error {
+func verifyMetric(m storage.Metric, key string) error {
 	var data string
 	switch strings.ToLower(m.MType) {
 	default:
@@ -113,23 +113,7 @@ func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gauges := make(map[string]float64)
-	counters := make(map[string]int64)
-
-	for _, metric := range metrics {
-		switch strings.ToLower(metric.MType) {
-		case "gauge":
-			log.Println("debug: gauge", metric.ID, *metric.Value)
-			gauges[metric.ID] = *metric.Value
-		case "counter":
-			log.Println("debug: counter", metric.ID, *metric.Delta)
-			counters[metric.ID] = *metric.Delta
-		default:
-			errJSONResponse(storage.ErrNotFound, w)
-			return
-		}
-	}
-	err = s.storage.SetMetrics(&counters, &gauges)
+	err = s.storage.SetMetrics(&metrics)
 	if err != nil {
 		errJSONResponse(err, w)
 	}
@@ -143,25 +127,25 @@ func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) getStorageJSONMetric(m serializer.Metric, key string) (serializer.Metric, error) {
+func (s *Server) getStorageJSONMetric(m storage.Metric, key string) (storage.Metric, error) {
 	var data string
 	switch strings.ToLower(m.MType) {
 	case "gauge":
 		value, err := s.storage.GetGauge(m.ID)
 		m.Value = &value
 		if err != nil {
-			return serializer.Metric{}, err
+			return storage.Metric{}, err
 		}
 		data = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
 	case "counter":
 		value, err := s.storage.GetCounter(m.ID)
 		m.Delta = &value
 		if err != nil {
-			return serializer.Metric{}, err
+			return storage.Metric{}, err
 		}
 		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
 	default:
-		return serializer.Metric{}, storage.ErrNotImplemented
+		return storage.Metric{}, storage.ErrNotImplemented
 	}
 	if key != "" {
 		h := hash.SignData(key, data)
