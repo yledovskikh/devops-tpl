@@ -3,9 +3,11 @@ package db
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -65,7 +67,7 @@ func (d *DB) SetGauge(metricName string, metricValue float64) error {
 
 	sql := "INSERT INTO mgauges (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = $2 WHERE mgauges.metric_name = $1;"
 	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
-	log.Println(err)
+	log.Error().Err(err).Msg("")
 	return err
 }
 
@@ -81,13 +83,13 @@ func (d *DB) GetAllGauges() map[string]float64 {
 	for rows.Next() {
 		var metricName string
 		var metricValue float64
-		if err := rows.Scan(&metricName, &metricValue); err != nil {
+		if err = rows.Scan(&metricName, &metricValue); err != nil {
 			return make(map[string]float64)
 		}
 		metrics[metricName] = metricValue
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return make(map[string]float64)
 	}
 
@@ -110,10 +112,10 @@ func (d *DB) GetCounter(metricName string) (int64, error) {
 }
 
 func (d *DB) SetCounter(metricName string, metricValue int64) error {
-	log.Println("Set Counter to DB", metricValue)
+	log.Info().Msgf("Set Counter to DB - metricName:%s, metricValue: %s", metricName, metricValue)
 	sql := "INSERT INTO mcounter (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = mcounter.metric_value+$2 WHERE mcounter.metric_name = $1;"
 	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
-	log.Println("error:", err)
+	log.Error().Err(err).Msg("")
 	return err
 }
 func (d *DB) GetAllCounters() map[string]int64 {
@@ -128,13 +130,13 @@ func (d *DB) GetAllCounters() map[string]int64 {
 	for rows.Next() {
 		var metricName string
 		var metricValue int64
-		if err := rows.Scan(&metricName, &metricValue); err != nil {
+		if err = rows.Scan(&metricName, &metricValue); err != nil {
 			return make(map[string]int64)
 		}
 		metrics[metricName] = metricValue
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return make(map[string]int64)
 	}
 	return metrics
@@ -150,8 +152,7 @@ func dbMigrate(d *pgxpool.Pool, ctx context.Context) error {
 	for _, sql := range execSQL {
 		_, err := d.Exec(ctx, sql)
 		if err != nil {
-			err = errors.New("error create sql statement")
-			return err
+			return fmt.Errorf("not create database schema: %w", err)
 		}
 	}
 
@@ -172,12 +173,12 @@ func (d *DB) SetMetrics(metrics *[]storage.Metric) error {
 		case "gauge":
 			err = d.SetGauge(metric.ID, *metric.Value)
 			if err != nil {
-				log.Println(err)
+				log.Error().Err(err).Msg("")
 			}
 		case "counter":
 			err = d.SetCounter(metric.ID, *metric.Delta)
 			if err != nil {
-				log.Println(err)
+				log.Error().Err(err).Msg("")
 			}
 		}
 	}

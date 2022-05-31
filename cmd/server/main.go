@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/yledovskikh/devops-tpl/internal/config"
 	"github.com/yledovskikh/devops-tpl/internal/db"
 	"github.com/yledovskikh/devops-tpl/internal/dumper"
@@ -21,36 +24,40 @@ import (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
 
 	serverConfig := config.GetServerConfig()
+	log.Logger = log.With().Caller().Logger()
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	r := chi.NewRouter()
 
 	var s storage.Storage
 	var err error
 	if serverConfig.DatabaseDSN != "" {
-		log.Println("User Database Storage")
-		//TODO дополнительная обработка связанности с хранением метрик в файле
+		log.Info().Msg("Use Database Storage")
 		s, err = db.New(serverConfig.DatabaseDSN, ctx)
-
 		if err != nil {
-			log.Fatal("unable to use data source name", err)
+			log.Fatal().Err(err).Msg("unable to use data source name")
 		}
 		//Закрываем коннекты в БД
 		defer s.Close()
 	} else {
+		wg.Add(1)
 		s = inmemory.NewMetricStore()
+		dumper.Imp(s, serverConfig.StoreFile)
+		go dumper.Exec(&wg, ctx, s, serverConfig)
 	}
 	h := handlers.New(s)
 	h.Key = serverConfig.Key
 
-	if serverConfig.Restore {
-		dumper.Imp(s, serverConfig.StoreFile)
-	}
+	logger := httplog.NewLogger("server", httplog.Options{
+		JSON: true,
+	})
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(httplog.RequestLogger(logger))
 	r.Use(middleware.Recoverer)
 	r.Use(handlers.CompressResponse)
 	r.Use(handlers.DecompressRequest)
@@ -62,11 +69,6 @@ func main() {
 	r.Get("/value/{metricType}/{metricName}", h.GetURLMetric)
 	r.Post("/value/", h.GetJSONMetric)
 
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go dumper.Exec(&wg, ctx, s, serverConfig)
-
 	srv := &http.Server{
 		Addr:    serverConfig.ServerAddress,
 		Handler: r,
@@ -75,25 +77,21 @@ func main() {
 	signal.Notify(done, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("")
 		}
 	}()
-	log.Print("Server Started")
+	log.Info().Msg("Server Started")
 
 	<-done
-	log.Print("Server Stopped")
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Server Shutdown Failed:%+v", err)
+	if err = srv.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("")
 	}
-	//Закрываем к
-	//if err := ; err != nil {
-	//	log.Fatal("Close Database Connects Failde:%+v", err)
-	//}
 
+	log.Info().Msg("Server Stopped")
 	cancel()
 	wg.Wait()
-	log.Print("Server Exited Properly")
+	log.Info().Msg("Server Exited Properly")
 
 }

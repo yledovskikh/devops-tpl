@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"log"
+	//"log"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/yledovskikh/devops-tpl/internal/config"
 	"github.com/yledovskikh/devops-tpl/internal/handlers"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
@@ -58,7 +59,7 @@ func NewConsumer(filename string) (*consumer, error) {
 func (c *consumer) ReadMetric() (storage.Metric, error) {
 	data := c.scanner.Bytes()
 
-	log.Println("Read string - ", string(data))
+	log.Info().Msgf("Read string - ", string(data))
 
 	metric := storage.Metric{}
 	err := json.Unmarshal(data, &metric)
@@ -75,45 +76,44 @@ func (c *consumer) Close() error {
 
 func Exp(s storage.Storage, fileName string) {
 
-	log.Println("Info start export metrics to file")
+	log.Info().Msg("Info start export metrics to file")
 	producer, err := NewProducer(fileName)
 	if err != nil {
-		log.Println("Error Exp - producer, err := NewProducer(fileName)", err.Error())
+		log.Info().Msgf("Error Exp - producer, err := NewProducer(fileName)", err.Error())
 	}
 	defer producer.Close()
 	gauges := s.GetAllGauges()
 	for mName, mValue := range gauges {
 		metric := serializer.SerializeGauge(mName, mValue, "")
 		if err := producer.WriteMetric(&metric); err != nil {
-			log.Println("Error Exp - metric := serializer.DecodingGauge(mName, mValue)", err.Error())
+			log.Info().Msgf("Error Exp - metric := serializer.DecodingGauge(mName, mValue)", err.Error())
 		}
 	}
 	counters := s.GetAllCounters()
 	for mName, mValue := range counters {
 		metric := serializer.SerializeCounter(mName, mValue, "")
 		if err := producer.WriteMetric(&metric); err != nil {
-			log.Println("Error Exp - metric := serializer.DecodingCounter(mName, mValue)", err.Error())
+			log.Info().Msgf("Error Exp - metric := serializer.DecodingCounter(mName, mValue)", err.Error())
 		}
 	}
 }
 
 func Imp(s storage.Storage, fileName string) {
-	log.Println("Info start import DATA from file")
+	log.Info().Msg("Info start import DATA from file")
 	consumer, err := NewConsumer(fileName)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err)
 	}
 	defer consumer.Close()
 
 	for consumer.scanner.Scan() {
 		metric, err := consumer.ReadMetric()
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err)
 		}
-		log.Println(metric)
 		err = handlers.SaveStoreMetric(metric, s)
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err)
 		}
 	}
 
@@ -122,15 +122,15 @@ func Imp(s storage.Storage, fileName string) {
 func Exec(wg *sync.WaitGroup, ctx context.Context, storage storage.Storage, serverConfig config.ServerConfig) {
 	defer wg.Done()
 	dumpInt := time.NewTicker(serverConfig.StoreInterval)
-	log.Println("INFO dump file")
+	log.Info().Msg("INFO dump file")
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("INFO dump file before exit")
+			log.Info().Msg("INFO dump file before exit")
 			Exp(storage, serverConfig.StoreFile)
 			return
 		case <-dumpInt.C:
-			//log.Println("INFO dump file")
+			//log.Info().Msg("INFO dump file")
 			Exp(storage, serverConfig.StoreFile)
 		}
 	}

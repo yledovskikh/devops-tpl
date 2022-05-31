@@ -2,9 +2,10 @@ package inmemory
 
 import (
 	"errors"
-	"log"
 	"strings"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
@@ -28,7 +29,7 @@ func (s *MetricStore) SetGauge(metricName string, metricValue float64) error {
 	s.gaugesLock.Lock()
 	defer s.gaugesLock.Unlock()
 	s.gauges[metricName] = metricValue
-	log.Printf("save metric gauge - %s:%v", metricName, metricValue)
+	log.Info().Msgf("save metric gauge - %s:%v", metricName, metricValue)
 	return nil
 
 }
@@ -58,7 +59,7 @@ func (s *MetricStore) SetCounter(metricName string, metricValue int64) error {
 	defer s.countersLock.Unlock()
 	s.counters[metricName] += metricValue
 
-	log.Printf("save metric counter - %s:%d", metricName, metricValue)
+	log.Info().Msgf("save metric counter - %s:%d", metricName, metricValue)
 	return nil
 }
 
@@ -96,16 +97,16 @@ func (s *MetricStore) SetMetrics(metrics *[]storage.Metric) error {
 	for _, metric := range *metrics {
 		switch strings.ToLower(metric.MType) {
 		case "gauge":
-			log.Println("debug: gauge", metric.ID, *metric.Value)
+			log.Info().Msgf("debug: gauge", metric.ID, *metric.Value)
 			err := s.SetGauge(metric.ID, *metric.Value)
 			if err != nil {
-				log.Println(err)
+				log.Error().Err(err).Msg("")
 			}
 		case "counter":
-			log.Println("debug: counter", metric.ID, *metric.Delta)
+			log.Info().Msgf("debug: counter", metric.ID, *metric.Delta)
 			err := s.SetCounter(metric.ID, *metric.Delta)
 			if err != nil {
-				log.Println(err)
+				log.Error().Err(err).Msg("")
 			}
 		default:
 			return storage.ErrNotFound

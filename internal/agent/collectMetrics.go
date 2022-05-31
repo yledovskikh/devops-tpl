@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/yledovskikh/devops-tpl/internal/config"
 	"github.com/yledovskikh/devops-tpl/internal/hash"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
@@ -64,14 +64,15 @@ func (a *Agent) collectMetrics() {
 	a.storage.SetGauge("NumGC", float64(rtm.NumGC))
 	a.storage.SetGauge("RandomValue", r)
 	a.storage.SetCounter("PollCount", 1)
-	log.Println("INFO collect metrics")
+	log.Info().Msgf("collected metrics")
 }
 func send2server(url string, payloadBuf io.Reader) error {
 
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, url, payloadBuf)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
+		log.Error().Err(err).Msg("")
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -84,55 +85,55 @@ func send2server(url string, payloadBuf io.Reader) error {
 	if err != nil {
 		return err
 	}
-	//log.Printf("INFO metric %s was sent to %s \n", payloadBuf)
+	log.Info().Msgf("metrics was sent - status code: %d", response.StatusCode)
 	return nil
 }
 
-func (a *Agent) postMetrics(endpoint string, key string) {
-	url := endpoint + "/update/"
-
-	for mName, mValue := range a.storage.GetAllGauges() {
-		var h string
-		if key != "" {
-			data := fmt.Sprintf("%s:gauge:%f", mName, mValue)
-			h = hash.SignData(key, data)
-			log.Println(h, data)
-		}
-
-		m := serializer.SerializeGauge(mName, mValue, h)
-		// TODO Нужно выяснить можно ли это переменную payloadBuf инициировать один раз
-		payloadBuf := new(bytes.Buffer)
-		if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
-			log.Println(err.Error())
-		}
-
-		if err := send2server(url, payloadBuf); err != nil {
-			log.Println(err.Error())
-			continue
-		}
-	}
-
-	for mName, mValue := range a.storage.GetAllCounters() {
-		var h string
-		if key != "" {
-			data := fmt.Sprintf("%s:counter:%d", mName, mValue)
-			h = hash.SignData(key, data)
-		}
-		m := serializer.SerializeCounter(mName, mValue, h)
-		// TODO Нужно выяснить можно ли это переменную payloadBuf инициировать один раз
-		payloadBuf := new(bytes.Buffer)
-		if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
-			log.Println(err.Error())
-		}
-
-		if err := send2server(url, payloadBuf); err != nil {
-			log.Println(err.Error())
-			continue
-		}
-	}
-	//reset counter after send to server
-	a.storage.SetCounter("PollCount", 0)
-}
+//func (a *Agent) postMetrics(endpoint string, key string) {
+//	url := endpoint + "/update/"
+//
+//	for mName, mValue := range a.storage.GetAllGauges() {
+//		var h string
+//		if key != "" {
+//			data := fmt.Sprintf("%s:gauge:%f", mName, mValue)
+//			h = hash.SignData(key, data)
+//			log.Println(h, data)
+//		}
+//
+//		m := serializer.SerializeGauge(mName, mValue, h)
+//		// TODO Нужно выяснить можно ли это переменную payloadBuf инициировать один раз
+//		payloadBuf := new(bytes.Buffer)
+//		if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
+//			log.Println(err.Error())
+//		}
+//
+//		if err := send2server(url, payloadBuf); err != nil {
+//			log.Println(err.Error())
+//			continue
+//		}
+//	}
+//
+//	for mName, mValue := range a.storage.GetAllCounters() {
+//		var h string
+//		if key != "" {
+//			data := fmt.Sprintf("%s:counter:%d", mName, mValue)
+//			h = hash.SignData(key, data)
+//		}
+//		m := serializer.SerializeCounter(mName, mValue, h)
+//		// TODO Нужно выяснить можно ли это переменную payloadBuf инициировать один раз
+//		payloadBuf := new(bytes.Buffer)
+//		if err := json.NewEncoder(payloadBuf).Encode(m); err != nil {
+//			log.Error().Err(err).Msg("")
+//		}
+//
+//		if err := send2server(url, payloadBuf); err != nil {
+//			log.Error().Err(err).Msg("")
+//			continue
+//		}
+//	}
+//	//reset counter after send to server
+//	a.storage.SetCounter("PollCount", 0)
+//}
 
 func (a *Agent) postBatchMetrics(endpoint string, key string) {
 	url := endpoint + "/updates/"
@@ -143,7 +144,6 @@ func (a *Agent) postBatchMetrics(endpoint string, key string) {
 		if key != "" {
 			data := fmt.Sprintf("%s:gauge:%f", mName, mValue)
 			h = hash.SignData(key, data)
-			log.Println(h, data)
 		}
 
 		m := serializer.SerializeGauge(mName, mValue, h)
@@ -162,14 +162,17 @@ func (a *Agent) postBatchMetrics(endpoint string, key string) {
 
 	payloadBuf := new(bytes.Buffer)
 	if err := json.NewEncoder(payloadBuf).Encode(metrics); err != nil {
-		log.Println(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 
 	if err := send2server(url, payloadBuf); err != nil {
-		log.Println(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 	//reset counter after send to server
-	a.storage.SetCounter("PollCount", 0)
+	err := a.storage.SetCounter("PollCount", 0)
+	if err != nil {
+		log.Error().Err(err).Msg("")
+	}
 }
 
 func (a *Agent) Exec(agentConfig config.AgentConfig) {

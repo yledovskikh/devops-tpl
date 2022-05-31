@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	//"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yledovskikh/devops-tpl/internal/db"
@@ -37,7 +39,7 @@ func errJSONResponse(err error, w http.ResponseWriter) {
 	w.WriteHeader(status)
 	err = json.NewEncoder(w).Encode(respErr)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err)
 	}
 
 }
@@ -86,7 +88,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		errJSONResponse(err, w)
-		log.Println("Not verify hash")
+		fmt.Errorf("not verify hash: %w", err)
 		return
 	}
 
@@ -101,7 +103,7 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	resp := serializer.SerializeResponse(msg)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Print(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 }
 
@@ -123,7 +125,7 @@ func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
 	resp := serializer.SerializeResponse(msg)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Print(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 }
 
@@ -169,7 +171,7 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Print(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 }
 
@@ -226,9 +228,9 @@ func (s *Server) GetURLMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricValue, err := s.getStringMetric(metricType, metricName)
 	if err == nil {
-		_, err := fmt.Fprint(w, metricValue)
+		_, err = fmt.Fprint(w, metricValue)
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err).Msg("")
 		}
 		return
 	}
@@ -281,7 +283,7 @@ func CompressResponse(next http.Handler) http.Handler {
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 		err = gz.Close()
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err).Msg("")
 		}
 	})
 }
@@ -300,7 +302,7 @@ func DecompressRequest(next http.Handler) http.Handler {
 		zr, err := gzip.NewReader(r.Body)
 		if err != nil {
 			err = fmt.Errorf("reading gzip body failed:%w", err)
-			log.Println(err)
+			log.Error().Err(err).Msg("")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -325,9 +327,9 @@ func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
-		log.Println(err.Error())
+		log.Error().Err(err).Msg("ping database: status is shutdown")
 		return
 	}
 	w.Write([]byte("database is open"))
-	log.Println("database is open")
+	log.Info().Msg("ping database: status is open")
 }
