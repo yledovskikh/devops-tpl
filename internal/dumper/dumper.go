@@ -59,7 +59,7 @@ func NewConsumer(filename string) (*consumer, error) {
 func (c *consumer) ReadMetric() (storage.Metric, error) {
 	data := c.scanner.Bytes()
 
-	log.Info().Msgf("Read string - ", string(data))
+	log.Info().Msgf("read string - %s", string(data))
 
 	metric := storage.Metric{}
 	err := json.Unmarshal(data, &metric)
@@ -79,21 +79,21 @@ func Exp(s storage.Storage, fileName string) {
 	log.Info().Msg("Info start export metrics to file")
 	producer, err := NewProducer(fileName)
 	if err != nil {
-		log.Info().Msgf("Error Exp - producer, err := NewProducer(fileName)", err.Error())
+		log.Error().Err(err).Msgf("")
 	}
 	defer producer.Close()
 	gauges := s.GetAllGauges()
 	for mName, mValue := range gauges {
 		metric := serializer.SerializeGauge(mName, mValue, "")
-		if err := producer.WriteMetric(&metric); err != nil {
-			log.Info().Msgf("Error Exp - metric := serializer.DecodingGauge(mName, mValue)", err.Error())
+		if err = producer.WriteMetric(&metric); err != nil {
+			log.Error().Err(err)
 		}
 	}
 	counters := s.GetAllCounters()
 	for mName, mValue := range counters {
 		metric := serializer.SerializeCounter(mName, mValue, "")
-		if err := producer.WriteMetric(&metric); err != nil {
-			log.Info().Msgf("Error Exp - metric := serializer.DecodingCounter(mName, mValue)", err.Error())
+		if err = producer.WriteMetric(&metric); err != nil {
+			log.Error().Err(err)
 		}
 	}
 }

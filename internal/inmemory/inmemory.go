@@ -97,17 +97,21 @@ func (s *MetricStore) SetMetrics(metrics *[]storage.Metric) error {
 	for _, metric := range *metrics {
 		switch strings.ToLower(metric.MType) {
 		case "gauge":
-			log.Info().Msgf("debug: gauge", metric.ID, *metric.Value)
 			err := s.SetGauge(metric.ID, *metric.Value)
 			if err != nil {
 				log.Error().Err(err).Msg("")
+			} else {
+				log.Info().Msgf("metric was saved metricType: gauge, metricName:%s, metricValue:%f", metric.ID, *metric.Value)
 			}
 		case "counter":
 			log.Info().Msgf("debug: counter", metric.ID, *metric.Delta)
 			err := s.SetCounter(metric.ID, *metric.Delta)
 			if err != nil {
 				log.Error().Err(err).Msg("")
+			} else {
+				log.Info().Msgf("metric was saved metricType: gauge, metricName:%s, metricValue:%d", metric.ID, *metric.Delta)
 			}
+
 		default:
 			return storage.ErrNotFound
 		}

@@ -64,7 +64,7 @@ func (d *DB) GetGauge(metricName string) (float64, error) {
 }
 
 func (d *DB) SetGauge(metricName string, metricValue float64) error {
-
+	log.Info().Msgf("Set Counter to DB - metricName:%s, metricValue: %f", metricName, metricValue)
 	sql := "INSERT INTO mgauges (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = $2 WHERE mgauges.metric_name = $1;"
 	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
 	log.Error().Err(err).Msg("")
@@ -112,7 +112,7 @@ func (d *DB) GetCounter(metricName string) (int64, error) {
 }
 
 func (d *DB) SetCounter(metricName string, metricValue int64) error {
-	log.Info().Msgf("Set Counter to DB - metricName:%s, metricValue: %s", metricName, metricValue)
+	log.Info().Msgf("Set Counter to DB - metricName:%s, metricValue: %d", metricName, metricValue)
 	sql := "INSERT INTO mcounter (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = mcounter.metric_value+$2 WHERE mcounter.metric_name = $1;"
 	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
 	log.Error().Err(err).Msg("")

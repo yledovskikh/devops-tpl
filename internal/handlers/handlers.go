@@ -88,7 +88,6 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		errJSONResponse(err, w)
-		fmt.Errorf("not verify hash: %w", err)
 		return
 	}
 
