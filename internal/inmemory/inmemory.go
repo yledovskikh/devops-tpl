@@ -59,7 +59,7 @@ func (s *MetricStore) SetCounter(metricName string, metricValue int64) error {
 	s.countersLock.Lock()
 	defer s.countersLock.Unlock()
 	s.counters[metricName] += metricValue
-	log.Debug().Msgf("metric was saved metricType: counters, metricName:%s, metricValue:%f", metricName, metricValue)
+	log.Debug().Msgf("metric was saved metricType: counters, metricName:%s, metricValue:%d", metricName, metricValue)
 	return nil
 }
 
