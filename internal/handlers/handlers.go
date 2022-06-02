@@ -117,6 +117,7 @@ func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
 	err = s.storage.SetMetrics(&metrics)
 	if err != nil {
 		errJSONResponse(err, w)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

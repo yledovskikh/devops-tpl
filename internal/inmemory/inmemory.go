@@ -29,7 +29,8 @@ func (s *MetricStore) SetGauge(metricName string, metricValue float64) error {
 	s.gaugesLock.Lock()
 	defer s.gaugesLock.Unlock()
 	s.gauges[metricName] = metricValue
-	log.Info().Msgf("save metric gauge - %s:%v", metricName, metricValue)
+	log.Debug().Msgf("metric was saved metricType: gauges, metricName:%s, metricValue:%f", metricName, metricValue)
+
 	return nil
 
 }
@@ -58,8 +59,7 @@ func (s *MetricStore) SetCounter(metricName string, metricValue int64) error {
 	s.countersLock.Lock()
 	defer s.countersLock.Unlock()
 	s.counters[metricName] += metricValue
-
-	log.Info().Msgf("save metric counter - %s:%d", metricName, metricValue)
+	log.Debug().Msgf("metric was saved metricType: counters, metricName:%s, metricValue:%f", metricName, metricValue)
 	return nil
 }
 
@@ -100,15 +100,11 @@ func (s *MetricStore) SetMetrics(metrics *[]storage.Metric) error {
 			err := s.SetGauge(metric.ID, *metric.Value)
 			if err != nil {
 				log.Error().Err(err).Msg("")
-			} else {
-				log.Info().Msgf("metric was saved metricType: %s, metricName:%s, metricValue:%f", metric.MType, metric.ID, *metric.Value)
 			}
 		case "counter":
 			err := s.SetCounter(metric.ID, *metric.Delta)
 			if err != nil {
 				log.Error().Err(err).Msg("")
-			} else {
-				log.Info().Msgf("metric was saved metricType: %s, metricName:%s, metricValue:%f", metric.MType, metric.ID, *metric.Value)
 			}
 
 		default:
