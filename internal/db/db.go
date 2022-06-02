@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +11,11 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
+)
+
+const (
+	upsertGauge   = "INSERT INTO mgauges (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = $2 WHERE mgauges.metric_name = $1;"
+	upsertCounter = "INSERT INTO mcounter (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = mcounter.metric_value+$2 WHERE mcounter.metric_name = $1;"
 )
 
 type DB struct {
@@ -43,8 +47,7 @@ func (d DB) PingDB() error {
 	defer cancel()
 
 	if err := d.Pool.Ping(ctx); err != nil {
-		err = errors.New("Database to down:" + err.Error())
-		return err
+		return fmt.Errorf("database is down: %w", err)
 	}
 	return nil
 }
@@ -64,10 +67,8 @@ func (d *DB) GetGauge(metricName string) (float64, error) {
 }
 
 func (d *DB) SetGauge(metricName string, metricValue float64) error {
-	log.Info().Msgf("Set Counter to DB - metricName:%s, metricValue: %f", metricName, metricValue)
-	sql := "INSERT INTO mgauges (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = $2 WHERE mgauges.metric_name = $1;"
-	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
-	log.Error().Err(err).Msg("")
+	log.Debug().Msgf("Set Counter to DB - metricName:%s, metricValue: %f", metricName, metricValue)
+	_, err := d.Pool.Exec(d.ctx, upsertGauge, metricName, metricValue)
 	return err
 }
 
@@ -76,7 +77,7 @@ func (d *DB) GetAllGauges() map[string]float64 {
 	sql := "SELECT metric_name, metric_value FROM mgauges"
 	rows, err := d.Pool.Query(d.ctx, sql)
 	if err != nil {
-		return make(map[string]float64)
+		return nil
 	}
 	defer rows.Close()
 
@@ -84,13 +85,14 @@ func (d *DB) GetAllGauges() map[string]float64 {
 		var metricName string
 		var metricValue float64
 		if err = rows.Scan(&metricName, &metricValue); err != nil {
-			return make(map[string]float64)
+			return nil
 		}
 		metrics[metricName] = metricValue
 	}
 
 	if err = rows.Err(); err != nil {
-		return make(map[string]float64)
+		log.Error().Err(err).Msg("")
+		return nil
 	}
 
 	return metrics
@@ -112,10 +114,8 @@ func (d *DB) GetCounter(metricName string) (int64, error) {
 }
 
 func (d *DB) SetCounter(metricName string, metricValue int64) error {
-	log.Info().Msgf("Set Counter to DB - metricName:%s, metricValue: %d", metricName, metricValue)
-	sql := "INSERT INTO mcounter (metric_name, metric_value) VALUES($1, $2) ON CONFLICT (metric_name) DO UPDATE SET metric_value = mcounter.metric_value+$2 WHERE mcounter.metric_name = $1;"
-	_, err := d.Pool.Exec(d.ctx, sql, metricName, metricValue)
-	log.Error().Err(err).Msg("")
+	log.Debug().Msgf("Set Counter to DB - metricName:%s, metricValue: %d", metricName, metricValue)
+	_, err := d.Pool.Exec(d.ctx, upsertCounter, metricName, metricValue)
 	return err
 }
 func (d *DB) GetAllCounters() map[string]int64 {
@@ -123,7 +123,7 @@ func (d *DB) GetAllCounters() map[string]int64 {
 	sql := "SELECT metric_name, metric_value FROM mgauges"
 	rows, err := d.Pool.Query(d.ctx, sql)
 	if err != nil {
-		return make(map[string]int64)
+		return nil
 	}
 	defer rows.Close()
 
@@ -131,13 +131,14 @@ func (d *DB) GetAllCounters() map[string]int64 {
 		var metricName string
 		var metricValue int64
 		if err = rows.Scan(&metricName, &metricValue); err != nil {
-			return make(map[string]int64)
+			return nil
 		}
 		metrics[metricName] = metricValue
 	}
 
 	if err = rows.Err(); err != nil {
-		return make(map[string]int64)
+		log.Error().Err(err).Msg("")
+		return nil
 	}
 	return metrics
 }
@@ -152,7 +153,7 @@ func dbMigrate(d *pgxpool.Pool, ctx context.Context) error {
 	for _, sql := range execSQL {
 		_, err := d.Exec(ctx, sql)
 		if err != nil {
-			return fmt.Errorf("not create database schema: %w", err)
+			return fmt.Errorf("database schema was not created - %w", err)
 		}
 	}
 
@@ -171,12 +172,12 @@ func (d *DB) SetMetrics(metrics *[]storage.Metric) error {
 	for _, metric := range *metrics {
 		switch strings.ToLower(metric.MType) {
 		case "gauge":
-			err = d.SetGauge(metric.ID, *metric.Value)
+			_, err = tx.Exec(d.ctx, upsertGauge, metric.ID, *metric.Value)
 			if err != nil {
 				log.Error().Err(err).Msg("")
 			}
 		case "counter":
-			err = d.SetCounter(metric.ID, *metric.Delta)
+			_, err = tx.Exec(d.ctx, upsertCounter, metric.ID, *metric.Delta)
 			if err != nil {
 				log.Error().Err(err).Msg("")
 			}
