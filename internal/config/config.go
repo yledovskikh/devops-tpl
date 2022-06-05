@@ -23,12 +23,14 @@ type AgentConfig struct {
 	EndPoint       string
 	PollInterval   time.Duration
 	ReportInterval time.Duration
+	Key            string
 }
 
 type AgentConfigEnv struct {
 	EndPoint       string        `env:"ADDRESS"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
+	Key            string        `env:"KEY"`
 }
 
 type ServerConfig struct {
@@ -36,6 +38,8 @@ type ServerConfig struct {
 	StoreInterval time.Duration
 	StoreFile     string
 	Restore       bool
+	Key           string
+	DatabaseDSN   string
 }
 
 type ServerConfigEnv struct {
@@ -43,6 +47,8 @@ type ServerConfigEnv struct {
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`
+	Key           string        `env:"KEY"`
+	DatabaseDSN   string        `env:"DATABASE_DSN"`
 }
 
 func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
@@ -51,14 +57,19 @@ func validateAgentConfig(cfg *AgentConfig, cEnv *AgentConfigEnv) {
 		cfg.EndPoint = cEnv.EndPoint
 	}
 
+	if cEnv.Key != "" {
+		cfg.Key = cEnv.Key
+	}
+
 	//Переделал проверку условия cEnv.ReportInterval != time.Duration(0)
 	//т.к. можно выставить переменную ОС - export REPORT_INTERVAL=0s
 	//по этой же причине не проверяю тип time.Duration и для других переменных
-	if cEnv.ReportInterval != time.Duration(0) {
+
+	if os.Getenv("REPORT_INTERVAL") != "" {
 		cfg.ReportInterval = cEnv.ReportInterval
 	}
 
-	if cEnv.PollInterval != time.Duration(0) {
+	if os.Getenv("POLL_INTERVAL") != "" {
 		cfg.PollInterval = cEnv.PollInterval
 	}
 
@@ -69,6 +80,10 @@ func validateServerConfig(cfg *ServerConfig, cEnv *ServerConfigEnv) {
 
 	if cEnv.ServerAddress != "" {
 		cfg.ServerAddress = cEnv.ServerAddress
+	}
+
+	if cEnv.Key != "" {
+		cfg.Key = cEnv.Key
 	}
 
 	if cEnv.StoreFile != "" {
@@ -89,6 +104,10 @@ func validateServerConfig(cfg *ServerConfig, cEnv *ServerConfigEnv) {
 		cfg.Restore = cEnv.Restore
 	}
 
+	if cEnv.DatabaseDSN != "" {
+		cfg.DatabaseDSN = cEnv.DatabaseDSN
+	}
+
 }
 
 func GetAgentConfig() AgentConfig {
@@ -98,6 +117,7 @@ func GetAgentConfig() AgentConfig {
 	flag.StringVar(&cfg.EndPoint, "a", serverAddressDefault, "server address")
 	flag.DurationVar(&cfg.PollInterval, "p", pollIntervalDefault, "poll metrics interval")
 	flag.DurationVar(&cfg.ReportInterval, "r", reportIntervalDefault, "report metric interval")
+	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
 
 	flag.Parse()
 	err := env.Parse(&cEnv)
@@ -117,6 +137,9 @@ func GetServerConfig() ServerConfig {
 	flag.DurationVar(&cfg.StoreInterval, "i", storeIntervalDefault, "dump metrics to file interval")
 	flag.StringVar(&cfg.StoreFile, "f", storeFileDefault, "dump file name")
 	flag.BoolVar(&cfg.Restore, "r", restoreDefault, "restore metrics from file")
+	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
+	//postgres://username:password@localhost:5432/database_name
+	flag.StringVar(&cfg.DatabaseDSN, "d", "", "Data Source Name")
 
 	flag.Parse()
 	err := env.Parse(&cEnv)

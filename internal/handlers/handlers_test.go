@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/yledovskikh/devops-tpl/internal/storage"
+	"github.com/yledovskikh/devops-tpl/internal/inmemory"
 )
 
 func TestServer_GetURLMetricMetric(t *testing.T) {
@@ -54,7 +54,7 @@ func TestServer_GetURLMetricMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			s := storage.NewMetricStore()
+			s := inmemory.NewMetricStore()
 			h := New(s)
 			h.saveStringMetric(tt.metric.metricType, tt.metric.metricName, tt.metric.metricValue)
 			////ms := map[string]string{"metricType": tt.metric.metricType, "metricName": tt.metric.metricName, "metricValue": tt.metric.metricValue}
@@ -124,7 +124,7 @@ func TestServer_PostMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			s := storage.NewMetricStore()
+			s := inmemory.NewMetricStore()
 			h := New(s)
 
 			path := "/update/" + tt.metric.metricType + "/" + tt.metric.metricName + "/" + tt.metric.metricValue

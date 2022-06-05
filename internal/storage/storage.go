@@ -2,25 +2,32 @@ package storage
 
 import (
 	"errors"
-	"log"
-	"sync"
 )
 
 type Storage interface {
+	SetMetrics(*[]Metric) error
+
 	GetGauge(metricName string) (float64, error)
-	SetGauge(metricName string, metricValue float64)
+	SetGauge(metricName string, metricValue float64) error
 	GetAllGauges() map[string]float64
 
 	GetCounter(metricName string) (int64, error)
-	SetCounter(metricName string, metricValue int64)
+	SetCounter(metricName string, metricValue int64) error
 	GetAllCounters() map[string]int64
+	PingDB() error
+	Close()
 }
 
-type MetricStore struct {
-	counters     map[string]int64
-	gauges       map[string]float64
-	countersLock sync.RWMutex
-	gaugesLock   sync.RWMutex
+type Metric struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
+}
+
+type JSONResponse struct {
+	Message string `json:"message"` // значение метрики в случае передачи gauge
 }
 
 var (
@@ -28,67 +35,3 @@ var (
 	ErrNotFound       = errors.New("metric not found")
 	ErrNotImplemented = errors.New("unknown metric type")
 )
-
-func NewMetricStore() *MetricStore {
-	return &MetricStore{
-		counters: make(map[string]int64),
-		gauges:   make(map[string]float64),
-	}
-}
-
-func (s *MetricStore) SetGauge(metricName string, metricValue float64) {
-	s.gaugesLock.Lock()
-	defer s.gaugesLock.Unlock()
-	s.gauges[metricName] = metricValue
-	log.Printf("save metric gauge - %s:%v", metricName, metricValue)
-
-}
-
-func (s *MetricStore) GetGauge(metricName string) (float64, error) {
-	s.gaugesLock.RLock()
-	defer s.gaugesLock.RUnlock()
-
-	if val, ok := s.gauges[metricName]; ok {
-		return val, nil
-	}
-	return 0, ErrNotFound
-}
-
-func (s *MetricStore) GetAllGauges() map[string]float64 {
-	s.gaugesLock.RLock()
-	defer s.gaugesLock.RUnlock()
-	m := make(map[string]float64)
-	for i, val := range s.gauges {
-		m[i] = val
-	}
-	return m
-}
-
-func (s *MetricStore) SetCounter(metricName string, metricValue int64) {
-	s.countersLock.Lock()
-	defer s.countersLock.Unlock()
-	s.counters[metricName] += metricValue
-
-	log.Printf("save metric counter - %s:%d", metricName, metricValue)
-
-}
-
-func (s *MetricStore) GetCounter(metricName string) (int64, error) {
-	s.countersLock.RLock()
-	defer s.countersLock.RUnlock()
-
-	if val, ok := s.counters[metricName]; ok {
-		return val, nil
-	}
-	return 0, ErrNotFound
-}
-
-func (s *MetricStore) GetAllCounters() map[string]int64 {
-	s.countersLock.RLock()
-	defer s.countersLock.RUnlock()
-	m := make(map[string]int64)
-	for i, val := range s.counters {
-		m[i] = val
-	}
-	return m
-}

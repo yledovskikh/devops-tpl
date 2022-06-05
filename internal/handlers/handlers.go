@@ -5,18 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	//"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/yledovskikh/devops-tpl/internal/db"
+
+	"github.com/yledovskikh/devops-tpl/internal/hash"
 	"github.com/yledovskikh/devops-tpl/internal/serializer"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 )
 
 type Server struct {
 	storage storage.Storage
+	Key     string
+	DB      *db.DB
 }
 
 func New(storage storage.Storage) *Server {
@@ -28,26 +35,43 @@ func New(storage storage.Storage) *Server {
 func errJSONResponse(err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	status := storageErrToStatus(err)
-	respErr := serializer.DecodingResponse(err.Error())
+	respErr := serializer.SerializeResponse(err.Error())
 	w.WriteHeader(status)
 	err = json.NewEncoder(w).Encode(respErr)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err)
 	}
 
 }
 
-func SaveStoreDecodeMetric(m serializer.Metric, s storage.Storage) error {
+func SaveStoreMetric(m storage.Metric, s storage.Storage) error {
 
 	switch strings.ToLower(m.MType) {
 	case "gauge":
-		s.SetGauge(m.ID, *m.Value)
-		return nil
+		err := s.SetGauge(m.ID, *m.Value)
+		return err
 	case "counter":
-		s.SetCounter(m.ID, *m.Delta)
-		return nil
+		err := s.SetCounter(m.ID, *m.Delta)
+		return err
 	}
 	return storage.ErrNotImplemented
+}
+
+func verifyMetric(m storage.Metric, key string) error {
+	var data string
+	switch strings.ToLower(m.MType) {
+	default:
+		return storage.ErrNotImplemented
+	case "gauge":
+		data = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
+	case "counter":
+		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
+	}
+	h := hash.SignData(key, data)
+	if h != m.Hash {
+		return storage.ErrNotImplemented
+	}
+	return nil
 }
 
 func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +82,16 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = SaveStoreDecodeMetric(m, s.storage)
+	if s.Key != "" {
+		err = verifyMetric(m, s.Key)
+	}
+
+	if err != nil {
+		errJSONResponse(err, w)
+		return
+	}
+
+	err = SaveStoreMetric(m, s.storage)
 	if err != nil {
 		errJSONResponse(err, w)
 		return
@@ -66,32 +99,60 @@ func (s *Server) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	msg := "Metric saved"
-	resp := serializer.DecodingResponse(msg)
+	resp := serializer.SerializeResponse(msg)
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Print(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 }
 
-func (s *Server) getStorageJSONMetric(m serializer.Metric) (serializer.Metric, error) {
+func (s *Server) UpdatesJSONMetrics(w http.ResponseWriter, r *http.Request) {
 
+	metrics, err := serializer.DecodingJSONMetrics(r.Body)
+	if err != nil {
+		errJSONResponse(err, w)
+		return
+	}
+
+	err = s.storage.SetMetrics(&metrics)
+	if err != nil {
+		errJSONResponse(err, w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	msg := "Metrics saved"
+	resp := serializer.SerializeResponse(msg)
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		log.Error().Err(err).Msg("")
+	}
+}
+
+func (s *Server) getStorageJSONMetric(m storage.Metric, key string) (storage.Metric, error) {
+	var data string
 	switch strings.ToLower(m.MType) {
 	case "gauge":
 		value, err := s.storage.GetGauge(m.ID)
 		m.Value = &value
 		if err != nil {
-			return serializer.Metric{}, err
+			return storage.Metric{}, err
 		}
+		data = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
 	case "counter":
 		value, err := s.storage.GetCounter(m.ID)
 		m.Delta = &value
 		if err != nil {
-			return serializer.Metric{}, err
+			return storage.Metric{}, err
 		}
+		data = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
 	default:
-		return serializer.Metric{}, storage.ErrNotImplemented
+		return storage.Metric{}, storage.ErrNotImplemented
 	}
-
+	if key != "" {
+		h := hash.SignData(key, data)
+		m.Hash = h
+	}
 	return m, nil
 }
 
@@ -102,7 +163,7 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		errJSONResponse(err, w)
 		return
 	}
-	resp, err := s.getStorageJSONMetric(m)
+	resp, err := s.getStorageJSONMetric(m, s.Key)
 	if err != nil {
 		errJSONResponse(err, w)
 		return
@@ -110,7 +171,7 @@ func (s *Server) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		log.Print(err.Error())
+		log.Error().Err(err).Msg("")
 	}
 }
 
@@ -167,9 +228,9 @@ func (s *Server) GetURLMetric(w http.ResponseWriter, r *http.Request) {
 
 	metricValue, err := s.getStringMetric(metricType, metricName)
 	if err == nil {
-		_, err := fmt.Fprint(w, metricValue)
+		_, err = fmt.Fprint(w, metricValue)
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err).Msg("")
 		}
 		return
 	}
@@ -222,7 +283,7 @@ func CompressResponse(next http.Handler) http.Handler {
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 		err = gz.Close()
 		if err != nil {
-			log.Println(err)
+			log.Error().Err(err).Msg("")
 		}
 	})
 }
@@ -241,7 +302,7 @@ func DecompressRequest(next http.Handler) http.Handler {
 		zr, err := gzip.NewReader(r.Body)
 		if err != nil {
 			err = fmt.Errorf("reading gzip body failed:%w", err)
-			log.Println(err)
+			log.Error().Err(err).Msg("")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -259,4 +320,16 @@ func (s *Server) AllMetrics(w http.ResponseWriter, r *http.Request) {
 	for metric, value := range s.storage.GetAllCounters() {
 		fmt.Fprint(w, "<br>", metric, ":", value, "</br>")
 	}
+}
+
+func (s *Server) Ping(w http.ResponseWriter, r *http.Request) {
+	err := s.storage.PingDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		log.Error().Err(err).Msg("ping database: status is shutdown")
+		return
+	}
+	w.Write([]byte("database is open"))
+	log.Info().Msg("ping database: status is open")
 }
