@@ -1,4 +1,4 @@
-package poolGoPsUtil
+package poolgopsutil
 
 import (
 	"context"
@@ -22,13 +22,6 @@ import (
 //		storage: storage,
 //	}
 //}
-
-func setMetricsGauge(metricName, key string, metricValue float64, metrics []storage.Metric) *[]storage.Metric {
-	m := serializer.SerializeGaugeH(metricName, metricValue, key)
-	metrics = append(metrics, m)
-	return &metrics
-
-}
 
 func postBatchMetrics(key string, ch chan<- *[]storage.Metric) {
 	var metrics []storage.Metric

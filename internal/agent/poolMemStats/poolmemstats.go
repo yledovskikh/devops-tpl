@@ -1,4 +1,4 @@
-package poolMemStats
+package poolmemstats
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package reportMetrics
+package reportmetrics
 
 import (
 	"bytes"

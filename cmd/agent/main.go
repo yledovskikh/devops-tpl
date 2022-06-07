@@ -10,15 +10,17 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/yledovskikh/devops-tpl/internal/agent/poolGoPsUtil"
+	"github.com/yledovskikh/devops-tpl/internal/agent/poolMemStats"
 	"github.com/yledovskikh/devops-tpl/internal/agent/reportMetrics"
+	"github.com/yledovskikh/devops-tpl/internal/inmemory"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
 
 	"github.com/yledovskikh/devops-tpl/internal/config"
 )
 
 func main() {
-	//s := inmemory.NewMetricStore()
-	//h := poolMemStats.New(s)
+	s := inmemory.NewMetricStore()
+	h := poolmemstats.New(s)
 	ch := make(chan *[]storage.Metric)
 
 	log.Logger = log.With().Caller().Logger()
@@ -30,9 +32,9 @@ func main() {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
-	//go h.Exec(ctx, agentConfig, ch)
-	go poolGoPsUtil.Exec(ctx, agentConfig, ch)
-	go reportMetrics.Exec(ctx, agentConfig.EndPoint, ch)
+	go h.Exec(ctx, agentConfig, ch)
+	go poolgopsutil.Exec(ctx, agentConfig, ch)
+	go reportmetrics.Exec(ctx, agentConfig.EndPoint, ch)
 
 	exitCode := <-signalChannel
 	cancel()
