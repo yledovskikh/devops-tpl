@@ -76,7 +76,6 @@ func (c *consumer) Close() error {
 
 func Exp(s storage.Storage, fileName string) {
 
-	log.Info().Msg("Info start export metrics to file")
 	producer, err := NewProducer(fileName)
 	if err != nil {
 		log.Error().Err(err).Msgf("")
@@ -96,10 +95,11 @@ func Exp(s storage.Storage, fileName string) {
 			log.Error().Err(err)
 		}
 	}
+	log.Info().Msgf("metrics was exported to file - %s", fileName)
+
 }
 
 func Imp(s storage.Storage, fileName string) {
-	log.Info().Msg("Info start import DATA from file")
 	consumer, err := NewConsumer(fileName)
 	if err != nil {
 		log.Error().Err(err)
@@ -116,17 +116,17 @@ func Imp(s storage.Storage, fileName string) {
 			log.Error().Err(err)
 		}
 	}
+	log.Info().Msg("metrics was imported from file")
 
 }
 
 func Exec(wg *sync.WaitGroup, ctx context.Context, storage storage.Storage, serverConfig config.ServerConfig) {
 	defer wg.Done()
 	dumpInt := time.NewTicker(serverConfig.StoreInterval)
-	log.Info().Msg("INFO dump file")
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info().Msg("INFO dump file before exit")
+			log.Info().Msg("dump file before exit")
 			Exp(storage, serverConfig.StoreFile)
 			return
 		case <-dumpInt.C:

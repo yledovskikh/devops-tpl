@@ -190,3 +190,32 @@ func (d *DB) SetMetrics(metrics *[]storage.Metric) error {
 	}
 	return nil
 }
+
+//func (d *DB) SetMetric(metric *storage.Metric) error {
+//	tx, err := d.Pool.Begin(d.ctx)
+//	if err != nil {
+//		return err
+//	}
+//	// Rollback is safe to call even if the tx is already closed, so if
+//	// the tx commits successfully, this is a no-op
+//	defer tx.Rollback(d.ctx)
+//
+//		switch strings.ToLower(metric.MType) {
+//		case "gauge":
+//			_, err = tx.Exec(d.ctx, upsertGauge, metric.ID, *metric.Value)
+//			if err != nil {
+//				log.Error().Err(err).Msg("")
+//			}
+//		case "counter":
+//			_, err = tx.Exec(d.ctx, upsertCounter, metric.ID, *metric.Delta)
+//			if err != nil {
+//				log.Error().Err(err).Msg("")
+//			}
+//		}
+//
+//	err = tx.Commit(d.ctx)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}

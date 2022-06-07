@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -8,22 +9,33 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/yledovskikh/devops-tpl/internal/agent"
+	"github.com/yledovskikh/devops-tpl/internal/agent/poolGoPsUtil"
+	"github.com/yledovskikh/devops-tpl/internal/agent/reportMetrics"
+	"github.com/yledovskikh/devops-tpl/internal/storage"
+
 	"github.com/yledovskikh/devops-tpl/internal/config"
-	"github.com/yledovskikh/devops-tpl/internal/inmemory"
 )
 
 func main() {
-	s := inmemory.NewMetricStore()
-	h := agent.New(s)
-	agentConfig := config.GetAgentConfig()
+	//s := inmemory.NewMetricStore()
+	//h := poolMemStats.New(s)
+	ch := make(chan *[]storage.Metric)
+
 	log.Logger = log.With().Caller().Logger()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	agentConfig := config.GetAgentConfig()
 	log.Info().Msgf("endpoint: %s, pollInterval: %s , reportInterval: %s", agentConfig.EndPoint, agentConfig.PollInterval, agentConfig.ReportInterval)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	go h.Exec(agentConfig)
+
+	//go h.Exec(ctx, agentConfig, ch)
+	go poolGoPsUtil.Exec(ctx, agentConfig, ch)
+	go reportMetrics.Exec(ctx, agentConfig.EndPoint, ch)
+
 	exitCode := <-signalChannel
+	cancel()
 	fmt.Println(exitCode)
 	log.Info().Msgf("exit signal %s", exitCode)
 }
