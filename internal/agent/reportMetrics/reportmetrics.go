@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 	"github.com/yledovskikh/devops-tpl/internal/storage"
@@ -36,7 +37,7 @@ func send2server(url string, metrics *[]storage.Metric) error {
 	return nil
 }
 
-func Exec(ctx context.Context, endpoint string, ch <-chan *[]storage.Metric) {
+func Exec(ctx context.Context, wg *sync.WaitGroup, endpoint string, ch <-chan *[]storage.Metric) {
 
 	url := endpoint + "/updates/"
 
@@ -50,7 +51,8 @@ func Exec(ctx context.Context, endpoint string, ch <-chan *[]storage.Metric) {
 				continue
 			}
 		case <-ctx.Done():
-			log.Info().Msg("reporting of metrics stopped")
+			log.Info().Msg("reporting of metrics was stopped")
+			wg.Done()
 			return
 		}
 	}
