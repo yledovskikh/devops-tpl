@@ -54,7 +54,7 @@ func serializeMetrics(key string) {
 		serializer.SerializeGaugeH("MSpanInuse", float64(rtm.MSpanInuse), key),
 		serializer.SerializeGaugeH("NumGC", float64(rtm.NumGC), key),
 		serializer.SerializeGaugeH("RandomValue", r, key),
-		serializer.SerializeCounter("PollCount", poolCount, key),
+		serializer.SerializeCounterH("PollCount", poolCount, key),
 	}
 }
 

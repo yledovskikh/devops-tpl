@@ -32,14 +32,14 @@ func DecodingJSONMetrics(r io.Reader) ([]storage.Metric, error) {
 	return m, nil
 }
 
-func SerializeGauge(metricName string, metricValue float64, h string) storage.Metric {
-	return storage.Metric{ID: metricName, MType: "gauge", Value: &metricValue, Hash: h}
-}
+//func SerializeGauge(metricName string, metricValue float64, h string) storage.Metric {
+//	return storage.Metric{ID: metricName, MType: "gauge", Value: &metricValue, Hash: h}
+//}
 
-func SerializeCounter(metricName string, metricValue int64, h string) storage.Metric {
-
-	return storage.Metric{ID: metricName, MType: "counter", Delta: &metricValue, Hash: h}
-}
+//func SerializeCounter(metricName string, metricValue int64, h string) storage.Metric {
+//
+//	return storage.Metric{ID: metricName, MType: "counter", Delta: &metricValue, Hash: h}
+//}
 
 func SerializeResponse(msg string) storage.JSONResponse {
 	return storage.JSONResponse{Message: msg}

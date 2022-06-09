@@ -83,14 +83,14 @@ func Exp(s storage.Storage, fileName string) {
 	defer producer.Close()
 	gauges := s.GetAllGauges()
 	for mName, mValue := range gauges {
-		metric := serializer.SerializeGauge(mName, mValue, "")
+		metric := serializer.SerializeGaugeH(mName, mValue, "")
 		if err = producer.WriteMetric(&metric); err != nil {
 			log.Error().Err(err)
 		}
 	}
 	counters := s.GetAllCounters()
 	for mName, mValue := range counters {
-		metric := serializer.SerializeCounter(mName, mValue, "")
+		metric := serializer.SerializeCounterH(mName, mValue, "")
 		if err = producer.WriteMetric(&metric); err != nil {
 			log.Error().Err(err)
 		}
