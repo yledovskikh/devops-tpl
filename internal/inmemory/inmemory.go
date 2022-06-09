@@ -113,3 +113,23 @@ func (s *MetricStore) SetMetrics(metrics *[]storage.Metric) error {
 	}
 	return nil
 }
+
+//func (s *MetricStore) SetMetric(metric *storage.Metric) error {
+//
+//	switch strings.ToLower(metric.MType) {
+//	case "gauge":
+//		err := s.SetGauge(metric.ID, *metric.Value)
+//		if err != nil {
+//			log.Error().Err(err).Msg("")
+//		}
+//	case "counter":
+//		err := s.SetCounter(metric.ID, *metric.Delta)
+//		if err != nil {
+//			log.Error().Err(err).Msg("")
+//		}
+//
+//	default:
+//		return storage.ErrNotFound
+//	}
+//	return nil
+//}
